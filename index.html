@@ -1209,7 +1209,7 @@ if(sessionStorage.getItem('admin_auth')==='1') document.getElementById('lock-scr
 <!-- ══ 다회권 관리 (Firebase) ══ -->
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,deleteField}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,where,deleteField}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyBvHYAMLzrVW4YlhBo86zj3SNPxpQxDgcg",authDomain:"mutudio-academy-pass.firebaseapp.com",projectId:"mutudio-academy-pass",storageBucket:"mutudio-academy-pass.firebasestorage.app",messagingSenderId:"403554383066",appId:"1:403554383066:web:5dff822eff8332b14821e3"};
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
@@ -1219,7 +1219,7 @@ let members=[],searchQuery='',statsOpen=true,filterMode='all',selectedPass=4;
 const AV=['av0','av1','av2','av3','av4'];window.AV=AV;
 function setSyncStatus(s){const el=document.getElementById('sync-status');if(s==='ok'){el.className='sync-status sync-ok';el.textContent='● 연결됨';}else if(s==='saving'){el.className='sync-status sync-saving';el.textContent='● 저장 중...';}else{el.className='sync-status sync-err';el.textContent='● 오프라인';}}
 function setLastSync(){const now=new Date();document.getElementById('last-sync').textContent=`마지막 동기화 ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;}
-const q=query(colRef,orderBy("createdAt"));
+const q=query(colRef,where("payDate",">=",new Date(Date.now()-58*86400000).toISOString().split('T')[0]),orderBy("payDate","desc"));
 onSnapshot(q,(snap)=>{
   members=snap.docs.map(d=>({id:d.id,...d.data()}));
   window.members=members;

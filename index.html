@@ -241,7 +241,7 @@ tr:hover td{background:#fafaf9}
 .mini-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .mini-stat{background:#f5f5f4;border-radius:8px;padding:10px 14px}
 .mini-stat .ml{font-size:11px;color:#888;margin-bottom:2px}
-.mini-stat .mv{font-size:14px;font-weight:500}
+.mini-stat .mv{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
 .month-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .mcrd{background:#f5f5f4;border:1px solid transparent;border-radius:8px;padding:10px 14px;cursor:pointer;transition:.1s}
 .mcrd:hover{border-color:#ddd}
@@ -337,7 +337,7 @@ tr:hover td{background:#fafaf9}
 .closing-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0ee}
 .closing-row:last-child{border-bottom:none;font-weight:600;font-size:15px;color:#1a1a1a;padding-top:10px}
 .closing-label{font-size:13px;color:#555}
-.closing-val{font-size:13px;font-weight:500;color:#1a1a1a}
+.closing-val{font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
 .closing-method{display:flex;gap:12px;margin-top:10px}
 .cm-box{flex:1;background:#fff;border:1px solid #e5e5e3;border-radius:8px;padding:10px;text-align:center}
 .cm-label{font-size:11px;color:#888;margin-bottom:4px}
@@ -630,6 +630,7 @@ tr:hover td{background:#fafaf9}
       </div>
       <div id="daily-closing"></div>
       <div class="mini-stats" id="daily-mini"></div>
+      <div id="daily-refunds"></div>
       <div class="chart-container"><canvas id="daily-chart" role="img" aria-label="일별 매출 차트"></canvas></div>
       <div class="tbl-wrap"><div id="daily-tbl"></div></div>
     </div>
@@ -2012,7 +2013,7 @@ function selectGuest(el){
   fAmt=0; fPassType='guest'; fWater=false; fWaterOnly=false;
   updateAmtDisplay();
   document.getElementById('pass-reg-wrap').style.display='none';
-  clearPassReg&&clearPassReg(true);
+  clearPassReg&&clearPassReg(false);
 }
 function selectTicket(el,passType,price){
   fAmt=price; fWater=false; fWaterOnly=false;
@@ -2576,8 +2577,27 @@ function renderDaily(){
     <div class="mini-stat"><div class="ml">결제 건수</div><div class="mv">${payRecs.length}건</div></div>
     <div class="mini-stat"><div class="ml">🎫 티켓 차감</div><div class="mv" style="color:#204828">${deductCnt}회</div></div>
     ${proCnt?`<div class="mini-stat"><div class="ml">전문반 수강</div><div class="mv" style="color:#7b4fb5">${proCnt}명</div></div>`:''}
-    <div class="mini-stat"><div class="ml">물 💧</div><div class="mv" style="color:#2176ae">${waterCnt}개 · ${fmtW(waterAmt)}</div></div>`;
-  document.getElementById('daily-mini').style.gridTemplateColumns=`repeat(${proCnt?6:5},minmax(0,1fr))`;
+    <div class="mini-stat"><div class="ml">물 💧</div><div class="mv" style="color:#2176ae">${waterCnt}개 · ${fmtW(waterAmt)}</div></div>
+    ${todayRefunds.length?`<div class="mini-stat"><div class="ml">환불</div><div class="mv" style="color:#e24b4a">${todayRefunds.length}건 · -${fmtW(refundAmt)}</div></div>`:''}`;
+  document.getElementById('daily-mini').style.gridTemplateColumns=`repeat(${5+(proCnt?1:0)+(todayRefunds.length?1:0)},minmax(0,1fr))`;
+  // 환불 목록 (해당 날짜에 처리된 환불건)
+  const rfWrap=document.getElementById('daily-refunds');
+  if(rfWrap){
+    rfWrap.innerHTML = todayRefunds.length ? `
+      <div class="pay-panel" style="margin-top:8px;border-color:#f0d5d5">
+        <div class="pay-panel-hd" style="color:#e24b4a">💸 이날 처리된 환불 (${todayRefunds.length}건)</div>
+        ${todayRefunds.map(r=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5eaea">
+            <div>
+              <span style="font-weight:600">${r.name||''}</span>
+              <span style="font-size:11px;color:#aaa;margin-left:6px">${r.refundMethod||''} · ${r.reason||''}</span>
+              <div style="font-size:10px;color:#ccc;margin-top:2px">원결제 ${r.originalDate||''} · ${r.originalTicket||''} ${fmtW(r.originalAmt||0)}</div>
+            </div>
+            <span style="font-weight:700;color:#e24b4a;font-variant-numeric:tabular-nums">-${fmtW(r.refundAmt||0)}</span>
+          </div>
+        `).join('')}
+      </div>` : '';
+  }
   // 티켓 차감 내역 → 가상 레코드로 변환
   const ticketRows=[];
   (Array.isArray(window.members)?window.members:[]).forEach(m=>{
@@ -3473,8 +3493,23 @@ function renderDailyClosing(recs, date){
       teacherMap[h.teacher].ticketStudents.push({name:m.name});
     });
   });
+  // 시간표 기준 강사별 수업 시작 시간 (해당 요일)
+  const dow=date?new Date(date+'T00:00:00').getDay():null;
+  const daySchedule=dow!==null?((window.TIMETABLE||{})[dow]||[]):[];
+  const teacherTimeMap={};
+  daySchedule.forEach(c=>{ if(!teacherTimeMap[c.t]) teacherTimeMap[c.t]=c.time; });
+  const toMinutes=t=>{
+    if(!t) return 9999; // 시간표에 없는 강사(임시수업 등)는 맨 뒤로
+    const p=t.split(':').map(Number);
+    return p[0]*60+(p[1]||0);
+  };
   const teacherRows=Object.entries(teacherMap)
-    .sort((a,b)=>b[1].cnt-a[1].cnt)
+    .sort((a,b)=>{
+      const ta=toMinutes(teacherTimeMap[a[0]]);
+      const tb=toMinutes(teacherTimeMap[b[0]]);
+      if(ta!==tb) return ta-tb;
+      return b[1].cnt-a[1].cnt; // 시간이 같거나 시간표에 없으면 인원수순 보조 정렬
+    })
     .map(([t,v],idx)=>{
       const catLabel=[...v.cats].map(c=>CAT_LABEL[c]||c).join(', ');
 
@@ -3498,7 +3533,7 @@ function renderDailyClosing(recs, date){
       // 수강생 목록 (그룹별)
       function makeGroup(label,students,badgeHtml){
         if(!students.length) return '';
-        return `<div style="margin:6px 0 2px;font-size:10px;font-weight:700;color:#aaa;letter-spacing:.04em">${label}</div>`
+        return `<div style="margin:6px 0 2px;font-size:10px;font-weight:700;color:#aaa;letter-spacing:.04em">${label} (${students.length})</div>`
           + students.map(s=>`<div class="closing-student-item">
             <span style="flex:1;font-weight:500">${s.name}</span>
             ${s.amt>0?`<span style="font-size:11px;color:#aaa">${fmtW(s.amt)}</span>`:''}
@@ -3512,7 +3547,7 @@ function renderDailyClosing(recs, date){
         + makeGroup('현금',cashStudents,'<span class="closing-student-ticket cst-cash">현금</span>')
         + makeGroup('전문반',proStudents,'<span class="closing-student-ticket" style="background:#f5f0ff;color:#7b4fb5">전문반</span>')
         + makeGroup('🎫 티켓 차감',ticketStudents,'<span class="closing-student-ticket cst-ticket">티켓</span>')
-        + makeGroup('GUEST',guestStudents,'<span class="closing-student-ticket" style="background:#e8f5ee;color:#2e7d32">게스트</span>');
+        + makeGroup('게스트',guestStudents,'<span class="closing-student-ticket" style="background:#e8f5ee;color:#2e7d32">게스트</span>');
 
       return`<div>
         <div class="closing-teacher-row" onclick="(function(el){

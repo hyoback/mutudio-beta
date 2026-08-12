@@ -1159,12 +1159,12 @@ tr:hover td{background:#fafaf9}
 <script>
 if(!firebase.apps.length){
   firebase.initializeApp({
-    apiKey:"AIzaSyBvHYAMLzrVW4YlhBo86zj3SNPxpQxDgcg",
-    authDomain:"mutudio-academy-pass.firebaseapp.com",
-    projectId:"mutudio-academy-pass",
-    storageBucket:"mutudio-academy-pass.firebasestorage.app",
-    messagingSenderId:"403554383066",
-    appId:"1:403554383066:web:5dff822eff8332b14821e3"
+    apiKey:"AIzaSyCaSQOYuHoRCHztYApRtEscbLZ8A0uKyEs",
+    authDomain:"mutudio-beta.firebaseapp.com",
+    projectId:"mutudio-beta",
+    storageBucket:"mutudio-beta.firebasestorage.app",
+    messagingSenderId:"988959695280",
+    appId:"1:988959695280:web:7564c37de3775a22147675"
   });
 }
 const dbCompat=firebase.firestore();
@@ -1210,7 +1210,7 @@ if(sessionStorage.getItem('admin_auth')==='1') document.getElementById('lock-scr
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,where,deleteField}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-const firebaseConfig={apiKey:"AIzaSyBvHYAMLzrVW4YlhBo86zj3SNPxpQxDgcg",authDomain:"mutudio-academy-pass.firebaseapp.com",projectId:"mutudio-academy-pass",storageBucket:"mutudio-academy-pass.firebasestorage.app",messagingSenderId:"403554383066",appId:"1:403554383066:web:5dff822eff8332b14821e3"};
+const firebaseConfig={apiKey:"AIzaSyCaSQOYuHoRCHztYApRtEscbLZ8A0uKyEs",authDomain:"mutudio-beta.firebaseapp.com",projectId:"mutudio-beta",storageBucket:"mutudio-beta.firebasestorage.app",messagingSenderId:"988959695280",appId:"1:988959695280:web:7564c37de3775a22147675"};
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 window._firestoreDb=db; // Script 8에서 접근 가능하도록

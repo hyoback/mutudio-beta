@@ -644,6 +644,7 @@ tr:hover td{background:#fafaf9}
         <option value="">전체 분류</option>
         <option>정규</option><option>팝업</option><option>비기너</option><option>베이직</option><option>K-POP</option><option>워크샵</option>
       </select>
+      <input type="month" id="fm-old-month" class="pay-input" style="width:auto;font-size:12px;padding:6px 9px;margin-bottom:4px;margin-left:6px" onchange="loadOldMonth(this.value)" title="더 이전 달 조회">
       <div class="month-grid" id="month-grid"></div>
       <div class="chart-container"><canvas id="monthly-chart" role="img" aria-label="월별 매출 차트"></canvas></div>
       <div class="tbl-wrap" style="margin-top:8px"><div id="monthly-tbl"></div></div>
@@ -1768,8 +1769,11 @@ function loadPay(){
   const saved=localStorage.getItem(TEACHER_KEY)||oldSaved;
   if(saved){try{payTeachers=JSON.parse(saved);}catch(e){payTeachers=[];}}
   else{payTeachers=[...new Set(ALL_TEACHERS_DEFAULT)];localStorage.setItem(TEACHER_KEY,JSON.stringify(payTeachers));}
-  // 결제기록은 Firebase에서 실시간 수신
-  payColRef.orderBy('createdAt','desc').onSnapshot(function(snap){
+  // 결제기록은 Firebase에서 실시간 수신 — 읽기량 절감을 위해 이번달+지난달만 실시간 유지
+  const _now=new Date();
+  const _cutoff=new Date(_now.getFullYear(),_now.getMonth()-1,1).toISOString().split('T')[0];
+  window.payLiveWindowStart=_cutoff;
+  payColRef.where('date','>=',_cutoff).orderBy('date','desc').onSnapshot(function(snap){
     payRecords=snap.docs.map(function(d){return Object.assign({id:d.id,firebaseId:d.id},d.data());});
     updatePayStats();
     populateStatMonths();
@@ -1781,6 +1785,22 @@ function loadPay(){
     updatePayStats();
   });
 }
+// 실시간 구독 범위(이번달+지난달) 밖의 오래된 달을 1회성으로 조회
+window.oldMonthCache={};
+window.loadOldMonth=async function(ym){
+  if(!ym) return;
+  selMonthPay=ym;
+  if(!oldMonthCache[ym]){
+    const start=ym+'-01';
+    const [y,mo]=ym.split('-').map(Number);
+    const end=new Date(y,mo,1).toISOString().split('T')[0];
+    try{
+      const snap=await payColRef.where('date','>=',start).where('date','<',end).get();
+      oldMonthCache[ym]=snap.docs.map(d=>Object.assign({id:d.id,firebaseId:d.id},d.data()));
+    }catch(e){ console.error('과거 월 조회 오류:',e); oldMonthCache[ym]=[]; alert('조회 중 오류가 발생했습니다.'); }
+  }
+  renderMonthly();
+};
 function savePay(){try{localStorage.setItem(PAY_KEY,JSON.stringify(payRecords));}catch(e){}}
 window.savePay=savePay;
 // Firebase 저장 (비동기)
@@ -2639,11 +2659,18 @@ function renderDaily(){
 
 function renderMonthly(){
   const cat=document.getElementById('fm-cat').value;
-  const months=[...new Set(payRecords.map(r=>r.date.slice(0,7)))].sort().reverse();
+  // 해당 월 데이터 소스: 실시간 구독 범위 안이면 payRecords, 밖이면 1회성 조회 캐시
+  function dataForMonth(m){
+    if(window.payLiveWindowStart && m>=window.payLiveWindowStart.slice(0,7)) return payRecords.filter(r=>r.date.startsWith(m));
+    return (window.oldMonthCache&&oldMonthCache[m])||[];
+  }
+  const liveMonths=[...new Set(payRecords.map(r=>r.date.slice(0,7)))];
+  const cachedMonths=Object.keys(window.oldMonthCache||{});
+  const months=[...new Set([...liveMonths,...cachedMonths])].sort().reverse();
   if(!months.length){document.getElementById('month-grid').innerHTML='';document.getElementById('monthly-tbl').innerHTML='<div style="text-align:center;padding:2rem;color:#aaa;font-size:13px">데이터가 없습니다</div>';return;}
   if(!selMonthPay||!months.includes(selMonthPay)) selMonthPay=months[0];
   document.getElementById('month-grid').innerHTML=months.map(m=>{
-    let d=payRecords.filter(r=>r.date.startsWith(m)&&(!cat||r.cat===cat));
+    let d=dataForMonth(m).filter(r=>!cat||r.cat===cat);
     // 실제 결제만 (전문반수강·티켓차감 제외)
     const payOnly=d.filter(r=>r.name!=='물'&&!r.water&&r.pay!=='전문반'&&r.amt>0);
     const waterOnly=d.filter(r=>r.name==='물'||r.water===true);
@@ -2654,10 +2681,10 @@ function renderMonthly(){
     return`<div class="mcrd${m===selMonthPay?' sel':''}" onclick="selMonthPay='${m}';renderMonthly()">
       <div class="mm">${m}</div><div class="mv">${fmtW(tot)}</div>${refundAmt>0?`<div class="mc" style="color:#e24b4a">환불 -${fmtW(refundAmt)}</div>`:''}<div class="mc">${payOnly.length+waterOnly.length}건</div></div>`;
   }).join('');
-  let data=payRecords.filter(r=>r.date.startsWith(selMonthPay)&&(!cat||r.cat===cat));
+  let data=dataForMonth(selMonthPay).filter(r=>!cat||r.cat===cat);
   document.getElementById('monthly-tbl').innerHTML=buildPayTable(data);
   renderMonthlyChart(months,m=>{
-    const d=payRecords.filter(r=>r.date.startsWith(m)&&(!cat||r.cat===cat));
+    const d=dataForMonth(m).filter(r=>!cat||r.cat===cat);
     const pay=d.filter(r=>r.name!=='물'&&!r.water&&r.pay!=='전문반'&&r.amt>0).reduce((s,r)=>s+r.amt,0);
     const water=d.filter(r=>r.name==='물'||r.water===true).reduce((s,r)=>s+r.amt,0);
     const monthRefunds=(window.refundRecords||[]).filter(r=>(r.date||'').startsWith(m));

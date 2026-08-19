@@ -490,6 +490,7 @@ tr:hover td{background:#fafaf9}
     <button class="pay-nav-btn" onclick="switchPayTab('daily',this)">일별 보기</button>
     <button class="pay-nav-btn" onclick="switchPayTab('monthly',this)">월별 보기</button>
     <button class="pay-nav-btn" onclick="switchPayTab('stats',this)">수업 통계</button>
+    <button class="pay-nav-btn" onclick="switchPayTab('teacherpay',this)">강사페이</button>
     <button class="pay-nav-btn" onclick="switchPayTab('refunds',this)">환불 내역</button>
   </div>
 
@@ -535,8 +536,8 @@ tr:hover td{background:#fafaf9}
             </div>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
               <div class="amt-chip" onclick="setAmt(30000)"><span class="ac-name">1 Ticket</span><span class="ac-val">+30,000</span></div>
-              <div class="amt-chip" onclick="selectTicket(this,4,110000)" id="chip-4t"><span class="ac-name">4 Tickets</span><span class="ac-val">+110,000</span></div>
-              <div class="amt-chip" onclick="selectTicket(this,8,200000)" id="chip-8t"><span class="ac-name">8 Tickets</span><span class="ac-val">+200,000</span></div>
+              <div class="amt-chip" onclick="selectTicket(this,4,110000)" id="chip-4t"><span class="ac-name">4 Tickets (신규)</span><span class="ac-val">+110,000</span></div>
+              <div class="amt-chip" onclick="selectTicket(this,8,200000)" id="chip-8t"><span class="ac-name">8 Tickets (신규)</span><span class="ac-val">+200,000</span></div>
               <div class="amt-chip" onclick="setAmt(40000)"><span class="ac-name">Basic 1회</span><span class="ac-val">+40,000</span></div>
               <div class="amt-chip" onclick="selectBasicMonthlyPass(this)" id="chip-basic"><span class="ac-name">Basic 월등록</span><span class="ac-val" id="basic-monthly-val">▼ 선택</span></div>
               <div class="amt-chip" onclick="selectGuest(this)" id="chip-guest" style="border-color:var(--sage)"><span class="ac-name" style="color:var(--sage)">게스트</span><span class="ac-val" style="color:var(--sage)">+0</span></div>
@@ -645,6 +646,9 @@ tr:hover td{background:#fafaf9}
         <option value="">전체 분류</option>
         <option>정규</option><option>팝업</option><option>비기너</option><option>베이직</option><option>K-POP</option><option>워크샵</option>
       </select>
+      <select id="fm-teacher" class="pay-input" style="width:110px;font-size:12px;padding:6px 9px;margin-bottom:4px;margin-left:6px" onchange="renderMonthly()">
+        <option value="">전체 강사</option>
+      </select>
       <input type="month" id="fm-old-month" class="pay-input" style="width:auto;font-size:12px;padding:6px 9px;margin-bottom:4px;margin-left:6px" onchange="loadOldMonth(this.value)" title="더 이전 달 조회">
       <div class="month-grid" id="month-grid"></div>
       <div class="chart-container"><canvas id="monthly-chart" role="img" aria-label="월별 매출 차트"></canvas></div>
@@ -665,6 +669,11 @@ tr:hover td{background:#fafaf9}
 
   <!-- 강사 통계 -->
   <div id="ptab-stats" style="display:none">
+    <div style="margin-bottom:12px">
+      <select id="cs-month" class="pay-input" style="width:130px;font-size:12px;padding:6px 9px" onchange="renderClassStats()">
+        <option value="">전체 기간</option>
+      </select>
+    </div>
 
     <!-- 요일별 매출 + 인원 -->
     <div class="pay-panel" style="margin-bottom:12px">
@@ -688,24 +697,40 @@ tr:hover td{background:#fafaf9}
       </div>
     </div>
 
-    <!-- 결제 유형별 비중 -->
-    <div class="pay-panel" style="margin-bottom:12px">
-      <div class="pay-panel-hd">결제 유형별 비중</div>
+    <!-- 방문 유형별 비중 -->
+    <div class="pay-panel">
+      <div class="pay-panel-hd">방문 유형별 비중</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center">
         <div style="position:relative;height:200px"><canvas id="ticket-pie-chart"></canvas></div>
         <div id="ticket-pie-legend" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
+      <div id="refund-reason-wrap" style="margin-top:12px"></div>
     </div>
+  </div>
 
-    <!-- 강사별 수업 인원 -->
+  <!-- 강사페이 탭 -->
+  <div id="ptab-teacherpay" style="display:none">
     <div class="pay-panel">
-      <div class="pay-panel-hd">강사별 수업 인원</div>
-      <div style="margin-bottom:12px">
-        <select id="st-month" class="pay-input" style="width:130px;font-size:12px;padding:6px 9px" onchange="renderTeacherStats()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="pay-panel-hd" style="margin:0">강사별 매출 · 페이</div>
+        <select id="tp-month" class="pay-input" style="width:130px;font-size:12px;padding:6px 9px" onchange="renderTeacherPay()">
           <option value="">전체 기간</option>
         </select>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button onclick="openTeacherRateModal()" style="padding:6px 12px;font-size:11px;background:#fff;border:1px solid #e0e0da;border-radius:8px;cursor:pointer;color:#555;font-family:inherit">⚙️ 강사 등급 설정</button>
+      </div>
+      <div id="payroll-confirm-wrap"></div>
       <div id="teacher-stats-wrap"></div>
+
+      <div class="modal-bg" id="teacher-rate-modal">
+        <div class="modal" style="width:360px">
+          <div class="modal-title">⚙️ 강사 등급 설정</div>
+          <div style="font-size:12px;color:#888;margin-bottom:14px">전문반 학생 1명당 강사페이 단가예요. 다회권 학생은 강사 무관 10,000원 고정이라 여기 설정 안 해도 돼요.</div>
+          <div id="teacher-rate-list" style="max-height:360px;overflow-y:auto"></div>
+          <div class="modal-btns"><button class="btn-cancel" onclick="closeTeacherRateModal()">닫기</button></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -825,6 +850,14 @@ tr:hover td{background:#fafaf9}
       <input id="pro-inp-month" type="month" />
     </div>
     <div class="field"><label>비고 (선택)</label><input id="pro-inp-memo" placeholder="예: 2기 / 특이사항 등" /></div>
+    <div class="field" id="pro-pay-field"><label>결제수단</label>
+      <div class="pass-select" id="pro-pay-method-btns">
+        <button class="pass-btn active" data-method="카드" onclick="selectProPayMethod(this,'카드')">카드</button>
+        <button class="pass-btn" data-method="이체" onclick="selectProPayMethod(this,'이체')">이체</button>
+        <button class="pass-btn" data-method="현금" onclick="selectProPayMethod(this,'현금')">현금</button>
+      </div>
+    </div>
+    <div class="field" id="pro-amt-field"><label>결제금액</label><input id="pro-inp-amt" type="number" inputmode="numeric" value="700000" /></div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeProModal()">취소</button>
       <button class="btn-save" onclick="saveProMember()">저장</button>
@@ -862,6 +895,14 @@ tr:hover td{background:#fafaf9}
       </div>
     </div>
     <div class="field"><label>결제일</label><input id="inp-date" type="date" /></div>
+    <div class="field"><label>결제수단</label>
+      <div class="pass-select" id="inp-pay-method-btns">
+        <button class="pass-btn active" data-method="카드" onclick="selectInpPayMethod(this,'카드')">카드</button>
+        <button class="pass-btn" data-method="이체" onclick="selectInpPayMethod(this,'이체')">이체</button>
+        <button class="pass-btn" data-method="현금" onclick="selectInpPayMethod(this,'현금')">현금</button>
+      </div>
+    </div>
+    <div class="field"><label>결제금액</label><input id="inp-amt" type="number" inputmode="numeric" /></div>
     <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">취소</button><button class="btn-save" onclick="saveNew()">등록</button></div>
   </div>
 </div>
@@ -1170,6 +1211,140 @@ if(!firebase.apps.length){
 }
 const dbCompat=firebase.firestore();
 const payColRef=dbCompat.collection('payRecords');
+const visitsColRef=dbCompat.collection('visits');
+const teacherRatesRef=dbCompat.collection('settings').doc('teacherRates');
+// ── 강사페이 월별 확정(잠금) ── 확정하면 그 달 숫자가 스냅샷으로 얼어붙어서, 이후 수정과 무관하게 유지됨
+const payrollLocksRef=dbCompat.collection('payrollLocks');
+window.payrollLockCache={};
+window.loadPayrollLock=async function(ym){
+  if(window.payrollLockCache[ym]!==undefined) return window.payrollLockCache[ym];
+  try{
+    const snap=await payrollLocksRef.doc(ym).get();
+    window.payrollLockCache[ym]=snap.exists?snap.data():null;
+  }catch(e){ console.error('강사페이 확정 조회 오류:',e); window.payrollLockCache[ym]=null; }
+  return window.payrollLockCache[ym];
+};
+window.confirmPayroll=async function(ym,payMap,totalAmt){
+  if(!confirm(`${ym.replace('-','년 ')}월 강사페이를 확정할까요?\n확정 후엔 나중에 결제 내역을 수정해도 이 금액은 그대로 유지돼요.`)) return;
+  try{
+    await payrollLocksRef.doc(ym).set({rates:payMap,totalAmt,lockedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    window.payrollLockCache[ym]={rates:payMap,totalAmt};
+    if(window.toast) window.toast(`${ym.replace('-','년 ')}월 강사페이 확정 완료 🔒`);
+    if(typeof window.renderTeacherPay==='function') window.renderTeacherPay();
+  }catch(e){ console.error('확정 오류:',e); alert('확정 중 오류: '+e.message); }
+};
+window.unlockPayroll=async function(ym){
+  if(!confirm(`${ym.replace('-','년 ')}월 확정을 취소할까요?\n이후 다시 실시간 금액으로 바뀌어요.`)) return;
+  try{
+    await payrollLocksRef.doc(ym).delete();
+    window.payrollLockCache[ym]=null;
+    if(window.toast) window.toast('확정 취소됨');
+    if(typeof window.renderTeacherPay==='function') window.renderTeacherPay();
+  }catch(e){ console.error('확정 취소 오류:',e); alert('오류: '+e.message); }
+};
+window.teacherPayRates={};
+const DEFAULT_PRO_RATE=5000;
+teacherRatesRef.onSnapshot(function(snap){
+  window.teacherPayRates=(snap.exists&&snap.data()&&snap.data().rates)||{};
+  if(typeof window.renderTeacherRateSettings==='function') window.renderTeacherRateSettings();
+  if(typeof window.renderTeacherPay==='function'&&window.curPayTab==='teacherpay') window.renderTeacherPay();
+},function(err){ console.error('강사 등급 로드 오류:',err); });
+window.saveTeacherRate=async function(teacher,rate){
+  const updated=Object.assign({},window.teacherPayRates,{[teacher]:rate});
+  try{
+    await teacherRatesRef.set({rates:updated},{merge:true});
+  }catch(e){ console.error('등급 저장 오류:',e); if(window.toast) window.toast('저장 오류: '+e.message); }
+};
+// 방문기록 하나가 강사페이에 얼마 기여하는지 계산 (일반=10,000 고정 / 전문반=강사 등급별 / 게스트·물=0)
+window.visitPayCredit=function(r){
+  if(!r.teacher||r.refunded) return 0;
+  if(r.visitType==='guest'||r.visitType==='water') return 0;
+  if(r.visitType==='pro') return window.teacherPayRates[r.teacher]||DEFAULT_PRO_RATE;
+  if(r.visitType==='new_pass'||r.visitType==='deduct'||r.visitType==='single_ticket') return 10000;
+  return 0;
+};
+
+// ══════════════════════════════════════════════════
+// visits 통합 방문기록 — 모든 결제/차감/출석이 여기로 모임
+// ══════════════════════════════════════════════════
+function nowTimeStr(){
+  const n=new Date();
+  return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+}
+
+// 단순 방문 기록 (다회권/전문반 재고와 무관한 것: 신규등록결제, 게스트, 1회권 등)
+async function recordVisit(v){
+  const doc={
+    name:v.name||'', date:v.date, time:v.time||nowTimeStr(),
+    teacher:v.teacher||'', cat:v.cat||'',
+    visitType:v.visitType, // 'new_pass' | 'deduct' | 'basic_single' | 'guest' | 'pro' | 'single_ticket' | 'water'
+    payMethod:v.payMethod||'', amt:v.amt||0,
+    ticketType:v.ticketType||'', remainingAfter:v.remainingAfter??null,
+    linkedMemberId:v.linkedMemberId||null, linkedProId:v.linkedProId||null,
+    refunded:false, refundAmt:0, refundMethod:'', refundReason:'', refundDate:'',
+    note:v.note||'',
+    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+  };
+  const ref=await visitsColRef.add(doc);
+  return ref.id;
+}
+
+// 다회권 잔여횟수 차감 + 방문기록을 한 트랜잭션으로 (둘 중 하나만 성공하는 상황 방지)
+async function deductAndRecordVisit(memberId,v){
+  const memberRef=dbCompat.collection('members').doc(memberId);
+  return dbCompat.runTransaction(async(tx)=>{
+    const snap=await tx.get(memberRef);
+    if(!snap.exists) throw new Error('회원 정보를 찾을 수 없습니다.');
+    const m=snap.data();
+    if((m.remaining||0)<=0) throw new Error(`${m.name}님은 잔여 횟수가 없습니다.`);
+    const newRemaining=m.remaining-1;
+    tx.update(memberRef,{remaining:newRemaining});
+    const visitRef=visitsColRef.doc();
+    tx.set(visitRef,{
+      name:m.name, date:v.date, time:v.time||nowTimeStr(),
+      teacher:v.teacher||'', cat:v.cat||'',
+      visitType:'deduct',
+      payMethod:'', amt:0,
+      ticketType:m.passType==='basic'?'베이직':(m.passType+'회권'),
+      remainingAfter:newRemaining,
+      linkedMemberId:memberId, linkedProId:null,
+      refunded:false,refundAmt:0,refundMethod:'',refundReason:'',refundDate:'',
+      note:v.note||'',
+      createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    return {visitId:visitRef.id,newRemaining,memberName:m.name};
+  });
+}
+
+// 차감 취소 — 잔여횟수 복구 + 방문기록 삭제를 한 트랜잭션으로
+async function undoDeductVisit(memberId,visitId){
+  const memberRef=dbCompat.collection('members').doc(memberId);
+  const visitRef=visitsColRef.doc(visitId);
+  return dbCompat.runTransaction(async(tx)=>{
+    const snap=await tx.get(memberRef);
+    if(!snap.exists) throw new Error('회원 정보를 찾을 수 없습니다.');
+    const m=snap.data();
+    tx.update(memberRef,{remaining:(m.remaining||0)+1});
+    tx.delete(visitRef);
+    return {newRemaining:(m.remaining||0)+1};
+  });
+}
+
+// 환불 처리 — 새 결제/방문 만들지 않고 기존 visit 문서에 환불 정보만 얹음
+async function cancelVisit(visitId,refundInfo){
+  await visitsColRef.doc(visitId).update({
+    refunded:true,
+    refundAmt:refundInfo.amt||0,
+    refundMethod:refundInfo.method||'',
+    refundReason:refundInfo.reason||'',
+    refundDate:refundInfo.date||new Date().toISOString().split('T')[0],
+  });
+}
+window.recordVisit=recordVisit;
+window.deductAndRecordVisit=deductAndRecordVisit;
+window.undoDeductVisit=undoDeductVisit;
+window.cancelVisit=cancelVisit;
+
 </script>
 <!-- ══ 메인 탭 전환 ══ -->
 <script>
@@ -1247,11 +1422,30 @@ window.selectPass=(btn,val)=>{
     const firstBtn=document.querySelector('#inp-teacher-btns .basic-teacher-btn');
     if(firstBtn&&!document.querySelector('#inp-teacher-btns .basic-teacher-btn.active')) firstBtn.classList.add('active');
   }
+  updateInpDefaultAmt();
+}
+window.updateInpDefaultAmt=()=>{
+  const PRICE={4:110000,8:200000};
+  const amtEl=document.getElementById('inp-amt');
+  if(!amtEl) return;
+  if(selectedPass==='basic'){
+    const w4=document.querySelector('#inp-basic-extra .basic-week-btn[data-week="4"]');
+    const weeks=w4&&w4.classList.contains('active')?4:3;
+    amtEl.value=weeks===4?150000:110000;
+  } else {
+    amtEl.value=PRICE[selectedPass]||0;
+  }
+}
+window.selectInpPayMethod=(btn,method)=>{
+  window._inpPayMethod=method;
+  document.querySelectorAll('#inp-pay-method-btns .pass-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
 }
 window.setSyncStatus=setSyncStatus;;
 window.selectWeek=(btn,w)=>{
   document.querySelectorAll('#inp-basic-extra .basic-week-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  if(typeof updateInpDefaultAmt==='function') updateInpDefaultAmt();
 };
 // 강사 버튼 선택 (신규/수정/재결제 공용)
 window.selectBasicTeacher=(btn,ctx,name)=>{
@@ -1277,29 +1471,33 @@ window.doDeduct=async(memberId,teacher,cat)=>{
   // 차감 버튼 로딩 상태
   const btn=document.querySelector(`.deduct-btn[onclick*="${memberId}"]`);
   if(btn){btn.disabled=true;btn.textContent='처리 중...';}
-  const now=new Date();
-  const today=now.toISOString().split('T')[0];
-  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  const history=[...(m.history||[]),{date:today,time:timeStr,teacher:teacher||'',cat:cat||'',id:Date.now()}];
+  const today=new Date().toISOString().split('T')[0];
   setSyncStatus('saving');
-  await updateDoc(doc(db,'members',memberId),{remaining:m.remaining-1,history});
-  toast(`${m.name}님 수강 처리 완료 (잔여 ${m.remaining-1}회)`);
+  try{
+    const result=await window.deductAndRecordVisit(memberId,{date:today,teacher:teacher||'',cat:cat||''});
+    toast(`${m.name}님 수강 처리 완료 (잔여 ${result.newRemaining}회)`);
+  }catch(e){
+    toast('차감 오류: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='수강 차감 (-1회)';}
+  }
 };;
 window.undoDeduct=async(id)=>{
   const m=members.find(x=>x.id===id);if(!m)return;
   const total=m.passType==='basic'?(m.basicWeeks||3):(m.passType||4);
   if(m.remaining>=total)return;
-  const history=[...(m.history||[])];
-  if(history.length>0){
-    // 가장 최근 항목을 id로 찾아 삭제 (단순 pop 대신 안전하게)
-    const lastId=history[history.length-1].id;
-    const idx=history.findLastIndex(h=>h.id===lastId);
-    if(idx>=0) history.splice(idx,1);
-    else history.pop(); // fallback
-  }
   setSyncStatus('saving');
-  await dbCompat.collection('members').doc(id).update({remaining:m.remaining+1,history});
-  toast(`${m.name}님 차감 취소 (잔여 ${m.remaining+1}회)`);
+  try{
+    const snap=await dbCompat.collection('visits')
+      .where('linkedMemberId','==',id)
+      .where('visitType','==','deduct')
+      .orderBy('createdAt','desc').limit(1).get();
+    if(snap.empty){ toast('되돌릴 차감 기록을 찾을 수 없습니다.'); return; }
+    const visitId=snap.docs[0].id;
+    const result=await window.undoDeductVisit(id,visitId);
+    toast(`${m.name}님 차감 취소 (잔여 ${result.newRemaining}회)`);
+  }catch(e){
+    toast('취소 오류: '+e.message);
+  }
 };
 window.saveMemo=async(id,val)=>{await updateDoc(doc(db,'members',id),{memo:val});};
 window.addHistory=async(id,dateVal)=>{if(!dateVal){toast('날짜를 선택해 주세요.');return;}const m=members.find(x=>x.id===id);if(!m)return;const history=[...(m.history||[]),{date:dateVal,id:Date.now()}];history.sort((a,b)=>a.date.localeCompare(b.date));setSyncStatus('saving');await updateDoc(doc(db,'members',id),{history});toast('수강 이력 추가됨');};
@@ -1369,6 +1567,9 @@ window.openModal=()=>{
   document.getElementById('inp-basic-extra').classList.remove('show');
   document.getElementById('inp-name').value='';document.getElementById('inp-name-en').value='';
   document.getElementById('inp-phone').value='010-';document.getElementById('inp-date').value=new Date().toISOString().split('T')[0];
+  window._inpPayMethod='카드';
+  document.querySelectorAll('#inp-pay-method-btns .pass-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  updateInpDefaultAmt();
   document.getElementById('modal').classList.add('show');
   setTimeout(()=>document.getElementById('inp-name').focus(),50);
 };
@@ -1378,7 +1579,10 @@ window.saveNew=async()=>{
   const nameEn=document.getElementById('inp-name-en').value.trim();
   const phone=document.getElementById('inp-phone').value.trim();
   const payDate=document.getElementById('inp-date').value;
+  const amt=parseInt(document.getElementById('inp-amt').value)||0;
+  const payMethod=window._inpPayMethod||'카드';
   if(!name||!phone||!payDate){toast('모든 항목을 입력해 주세요.');return;}
+  if(!amt||amt<=0){toast('결제금액을 입력해 주세요.');return;}
   const isBasic=selectedPass==='basic';
   let basicTeacher='',basicWeeks=3,remaining=selectedPass;
   if(isBasic){
@@ -1389,10 +1593,14 @@ window.saveNew=async()=>{
     remaining=basicWeeks;
     if(!basicTeacher){toast('강사를 선택해 주세요.');return;}
   }
-  const data={name,nameEn,phone,payDate,passType:selectedPass,remaining,avIdx:members.length%AV.length,memo:'',history:[],createdAt:serverTimestamp()};
+  const data={name,nameEn,phone,payDate,passType:selectedPass,remaining,avIdx:members.length%AV.length,memo:'',createdAt:serverTimestamp()};
   if(isBasic){data.basicTeacher=basicTeacher;data.basicWeeks=basicWeeks;}
   setSyncStatus('saving');
-  await addDoc(colRef,data);
+  try{
+    const ref=await addDoc(colRef,data);
+    const ticketLabel=isBasic?`베이직${basicWeeks}주`:(selectedPass+' Tickets');
+    await window.recordVisit({name,date:payDate,teacher:isBasic?basicTeacher:'',cat:'다회권',visitType:'new_pass',payMethod,amt,ticketType:ticketLabel,linkedMemberId:ref.id,note:'다회권 관리에서 신규 등록'});
+  }catch(e){ toast('등록 중 오류: '+e.message); return; }
   closeModal();toast(`${name}님 등록 완료!`);
 };
 window.renewPass=(id)=>{
@@ -1473,18 +1681,14 @@ window.confirmRenew=async(id,passType)=>{
   document.getElementById('renew-modal')?.remove();
   const m=members.find(x=>x.id===id);if(!m)return;
   const today=new Date().toISOString().split('T')[0];
-  const now=new Date();
-  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const RENEW_PRICE={4:110000,8:200000};
   const amt=RENEW_PRICE[passType]||0;
   const ticketLabel=passType+'티켓 결제';
   setSyncStatus('saving');
   await updateDoc(doc(db,'members',id),{remaining:passType,passType:passType,payDate:today,lastPayMethod:payMethod});
-  if(window.savePayToFirebase){
-    const rec={id:Date.now(),date:today,time:timeStr,name:m.name,teacher:m.basicTeacher||'',cat:'다회권',ticket:ticketLabel,amt,pay:payMethod,note:'다회권 재결제'};
-    payRecords.push(rec);window.savePayToFirebase(rec);
-    if(window.savePay)window.savePay();if(window.updatePayStats)window.updatePayStats();
-  }
+  try{
+    await window.recordVisit({name:m.name,date:today,teacher:m.basicTeacher||'',cat:'다회권',visitType:'new_pass',payMethod,amt,ticketType:ticketLabel,linkedMemberId:id,note:'다회권 재결제'});
+  }catch(e){ toast('결제 기록 오류: '+e.message); }
   toast(m.name+'님 '+ticketLabel+' 완료! ('+payMethod+')');
 };
 window.showRenewBasic=(id)=>{
@@ -1501,19 +1705,15 @@ window.confirmRenewBasic=async(id)=>{
   if(!teacher){toast('강사를 선택해 주세요.');return;}
   const weeks=document.getElementById('renew-week-4').classList.contains('active')?4:3;
   const today=new Date().toISOString().split('T')[0];
-  const now=new Date();
-  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const amt=weeks===4?150000:110000;
   const ticketLabel=`베이직${weeks}주 결제`;
   const m=members.find(x=>x.id===id);if(!m)return;
   document.getElementById('renew-modal')?.remove();
   setSyncStatus('saving');
   await updateDoc(doc(db,'members',id),{passType:'basic',basicTeacher:teacher,basicWeeks:weeks,remaining:weeks,payDate:today,lastPayMethod:payMethod});
-  if(window.savePayToFirebase){
-    const rec={id:Date.now(),date:today,time:timeStr,name:m.name,teacher,cat:'다회권',ticket:ticketLabel,amt,pay:payMethod,note:'베이직 재결제'};
-    payRecords.push(rec);window.savePayToFirebase(rec);
-    if(window.savePay)window.savePay();if(window.updatePayStats)window.updatePayStats();
-  }
+  try{
+    await window.recordVisit({name:m.name,date:today,teacher,cat:'다회권',visitType:'new_pass',payMethod,amt,ticketType:ticketLabel,linkedMemberId:id,note:'베이직 재결제'});
+  }catch(e){ toast('결제 기록 오류: '+e.message); }
   toast(`${m.name}님 ${ticketLabel} 완료! (${teacher}·${weeks}주·${payMethod})`);
 };
 document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
@@ -1561,19 +1761,12 @@ function renderTodayWidget(){
   if(!widget) return;
 
   const todayStr=new Date().toISOString().split('T')[0];
-  const todayItems=[];
-  members.forEach(m=>{
-    (m.history||[]).forEach(h=>{
-      if(h.date===todayStr){
-        todayItems.push({
-          name:m.name,
-          time:h.time||'',
-          teacher:h.teacher||'',
-          avIdx:m.avIdx||0,
-        });
-      }
+  const todayItems=(window.visits||[])
+    .filter(v=>v.date===todayStr&&v.visitType==='deduct'&&!v.refunded)
+    .map(v=>{
+      const m=members.find(x=>x.id===v.linkedMemberId);
+      return{name:v.name,time:v.time||'',teacher:v.teacher||'',avIdx:m?.avIdx||0};
     });
-  });
   todayItems.sort((a,b)=>{ if(!a.time&&!b.time) return 0; if(!a.time) return 1; if(!b.time) return -1; return b.time.localeCompare(a.time); });
 
   countEl.textContent=todayItems.length;
@@ -1776,18 +1969,25 @@ function loadPay(){
   window.payLiveWindowStart=_cutoff;
   payColRef.where('date','>=',_cutoff).orderBy('date','desc').onSnapshot(function(snap){
     payRecords=snap.docs.map(function(d){return Object.assign({id:d.id,firebaseId:d.id},d.data());});
+  },function(err){
+    try{payRecords=JSON.parse(localStorage.getItem(PAY_KEY)||'[]');}catch(e){payRecords=[];}
+  });
+  // visits(통합 방문기록) — 같은 범위(이번달+지난달)만 실시간 유지
+  window.visits=[];
+  visitsColRef.where('date','>=',_cutoff).orderBy('date','desc').onSnapshot(function(snap){
+    window.visits=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
     updatePayStats();
     populateStatMonths();
     if(curPayTab==='daily') renderDaily();
     if(curPayTab==='monthly') renderMonthly();
-    if(curPayTab==='stats') renderTeacherStats();
-  },function(err){
-    try{payRecords=JSON.parse(localStorage.getItem(PAY_KEY)||'[]');}catch(e){payRecords=[];}
-    updatePayStats();
-  });
+    if(curPayTab==='stats') renderClassStats();
+    if(curPayTab==='teacherpay') renderTeacherPay();
+    if(typeof window.renderTodayWidget==='function') window.renderTodayWidget();
+  },function(err){ console.error('visits 구독 오류:',err); updatePayStats(); });
 }
 // 실시간 구독 범위(이번달+지난달) 밖의 오래된 달을 1회성으로 조회
 window.oldMonthCache={};
+window.oldMonthVisitsCache={};
 window.loadOldMonth=async function(ym){
   if(!ym) return;
   selMonthPay=ym;
@@ -1798,7 +1998,9 @@ window.loadOldMonth=async function(ym){
     try{
       const snap=await payColRef.where('date','>=',start).where('date','<',end).get();
       oldMonthCache[ym]=snap.docs.map(d=>Object.assign({id:d.id,firebaseId:d.id},d.data()));
-    }catch(e){ console.error('과거 월 조회 오류:',e); oldMonthCache[ym]=[]; alert('조회 중 오류가 발생했습니다.'); }
+      const vsnap=await visitsColRef.where('date','>=',start).where('date','<',end).get();
+      oldMonthVisitsCache[ym]=vsnap.docs.map(d=>Object.assign({id:d.id},d.data()));
+    }catch(e){ console.error('과거 월 조회 오류:',e); oldMonthCache[ym]=[]; oldMonthVisitsCache[ym]=[]; alert('조회 중 오류가 발생했습니다.'); }
   }
   renderMonthly();
 };
@@ -2118,14 +2320,10 @@ function setAmt(n){
 function addAmtNoPass(n){setAmt(n);}
 function addWater(){
   const payMethod=fPay||'카드';
-  const now=new Date();
-  const date=document.getElementById('f-date').value||now.toISOString().split('T')[0];
-  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  const rec={id:Date.now(),date,time:timeStr,name:'물',teacher:fTeacher||'',cat:fCat||'',ticket:'물',amt:1000,pay:payMethod,note:'',water:true};
-  savePayToFirebase(rec);
-  savePay();
-  if(window.updatePayStats) window.updatePayStats();
-  if(window.toast) window.toast('물 💧 추가됨 (+1,000원)');
+  const date=document.getElementById('f-date').value||new Date().toISOString().split('T')[0];
+  recordVisit({name:'물',date,teacher:fTeacher||'',cat:fCat||'',visitType:'water',payMethod,amt:1000,note:''})
+    .then(()=>{ if(window.updatePayStats) window.updatePayStats(); if(window.toast) window.toast('물 💧 추가됨 (+1,000원)'); })
+    .catch(e=>{ if(window.toast) window.toast('추가 오류: '+e.message); });
 }
 function addAmt(n){fAmt+=n;fWaterOnly=false;updateAmtDisplay();}
 function applyCustomAmt(){const v=parseInt(document.getElementById('f-amt-custom').value)||0;if(v>0){fAmt=v;fWater=false;fWaterOnly=false;fPassType=0;clearPassReg(true);updateAmtDisplay();document.getElementById('f-amt-custom').value=''}}
@@ -2167,11 +2365,9 @@ async function addPayRecord(){
   if(fDeduct){
     const matched=(window.members||[]).filter(m=>m.name&&m.name===name);
     if(!matched.length){
-      // 이름 부분일치도 시도
       const partial=(window.members||[]).filter(m=>m.name&&m.name.includes(name));
       if(!partial.length){alert(`"${name}"님은 다회권 미등록 회원입니다.`);return;}
       if(partial.length>1){
-        // 동명이인 — 기존 차감 모달로 안내
         alert(`"${name}"님이 여러 명입니다. 🎫 차감 버튼 옆 모달을 이용해 주세요.`);
         return;
       }
@@ -2189,13 +2385,13 @@ async function addPayRecord(){
   // ── 게스트 처리 ──
   const isGuest = fPassType==='guest';
   if(isGuest){
-    const now=new Date();
-    const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-    const rec={id:Date.now(),date,time:timeStr,name,teacher:fTeacher||'',cat:fCat||'',ticket:'게스트',amt:0,pay:'게스트',note:note||''};
-    savePayToFirebase(rec); savePay();
-    clearPayForm();
-    window.toast&&window.toast(`${name}님 게스트 등록 완료 ✅`);
-    if(window.updatePayStats) window.updatePayStats();
+    (window.setSyncStatus||function(){})('saving');
+    try{
+      await recordVisit({name,date,teacher:fTeacher||'',cat:fCat||'',visitType:'guest',payMethod:'',amt:0,note});
+      clearPayForm();
+      window.toast&&window.toast(`${name}님 게스트 등록 완료 ✅`);
+      if(window.updatePayStats) window.updatePayStats();
+    }catch(e){ window.toast&&window.toast('등록 오류: '+e.message); }
     return;
   }
 
@@ -2204,13 +2400,13 @@ async function addPayRecord(){
     if(!fTeacher){alert('수업(강사)을 먼저 선택해 주세요.');return;}
     const ok=await (window.proDeductForPay||(async()=>true))(name,date,fTeacher,fCat);
     if(!ok)return;
-    const now=new Date();
-    const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-    const rec={id:Date.now(),date,time:timeStr,name,teacher:fTeacher,cat:fCat,ticket:'전문반',amt:0,pay:'전문반',note};
-    savePayToFirebase(rec);savePay();
-    clearPayForm();
-    window.toast&&window.toast(`${name}님 전문반 수강 기록 완료 ✅`);
-    if(window.updatePayStats) window.updatePayStats();
+    (window.setSyncStatus||function(){})('saving');
+    try{
+      await recordVisit({name,date,teacher:fTeacher,cat:fCat,visitType:'pro',payMethod:'',amt:0,note});
+      clearPayForm();
+      window.toast&&window.toast(`${name}님 전문반 수강 기록 완료 ✅`);
+      if(window.updatePayStats) window.updatePayStats();
+    }catch(e){ window.toast&&window.toast('등록 오류: '+e.message); }
     return;
   }
 
@@ -2220,68 +2416,50 @@ async function addPayRecord(){
     if(!phone){alert('전화번호를 입력해 주세요.');return;}
   }
 
-  const now=new Date();
-  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  const rec={id:Date.now(),date,time:timeStr,name,teacher:fTeacher,cat:fCat,ticket:fTicket,amt:fAmt,pay:fPay,note};
-  savePayToFirebase(rec);
-  savePay();
+  (window.setSyncStatus||function(){})('saving');
 
-  // 다회권 / PRO 자동 등록
+  // 다회권 / PRO 재고 문서를 먼저 만들고, 결제 방문기록에서 연동ID로 연결
+  let linkedMemberId=null, linkedProId=null, immediateRemaining=null;
+
   if(fPassType&&name){
     const phone=document.getElementById('f-pass-phone').value.trim();
     const isProPass=fPassType==='pro';
 
-    // ── PRO: proMembers 등록 ──
     if(isProPass){
-      if(!phone){alert('전화번호를 입력해 주세요.');return;}
       const proMonth=document.getElementById('f-pass-pro-month').value||date.slice(0,7);
-      // proMembers 연동 (window.proMembers는 전문반 모듈에서 실시간 동기화)
       const existing=(window.proMembers||[]).find(m=>m.name===name&&m.month===proMonth);
+      const{collection,addDoc,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
       if(existing){
-        // 이미 해당 월에 등록 → 다음 달 연장
         const[y,mo]=proMonth.split('-').map(Number);
         const nextYm=new Date(y,mo,1).toISOString().slice(0,7);
         const dupNext=(window.proMembers||[]).find(m=>m.name===name&&m.month===nextYm);
-        if(dupNext){
-          alert(`${name}님은 이미 ${nextYm.replace('-','년 ')}월 전문반에 등록되어 있습니다.`);return;
-        }
+        if(dupNext){ alert(`${name}님은 이미 ${nextYm.replace('-','년 ')}월 전문반에 등록되어 있습니다.`);return; }
         if(!confirm(`${name}님은 ${proMonth.replace('-','년 ')}월 전문반에 이미 등록되어 있습니다.\n${nextYm.replace('-','년 ')}월로 연장 등록할까요?`))return;
-        (window.setSyncStatus||function(){})('saving');
-        const{getFirestore,collection,addDoc,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        await addDoc(collection(window._firestoreDb,'proMembers'),{
+        const ref=await addDoc(collection(window._firestoreDb,'proMembers'),{
           name,phone,month:nextYm,memo:'',attendance:[],fixedAttend:{},createdAt:serverTimestamp()
         });
+        linkedProId=ref.id;
         (window.toast||function(){})(`${name}님 ${nextYm.replace('-','년 ')}월 전문반 연장 등록 완료! 🎉`);
       } else {
-        // 신규 등록
-        (window.setSyncStatus||function(){})('saving');
-        const{getFirestore,collection,addDoc,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        await addDoc(collection(window._firestoreDb,'proMembers'),{
+        const ref=await addDoc(collection(window._firestoreDb,'proMembers'),{
           name,phone,month:proMonth,memo:'',attendance:[],fixedAttend:{},createdAt:serverTimestamp()
         });
+        linkedProId=ref.id;
         (window.toast||function(){})(`${name}님 ${proMonth.replace('-','년 ')}월 전문반 신규 등록 완료! 🎉`);
       }
     } else {
       // 일반 다회권 / basic
-      const hasClassSelected = !!fTeacher; // 수업 선택 여부 (clearPayForm 전에 저장)
-      const teacherSnap = fTeacher;
-      const catSnap = fCat;
+      const hasClassSelected = !!fTeacher;
       const totalRemain = fPassType==='basic'
         ? parseInt(document.getElementById('f-pass-basic-weeks').value||3)
         : fPassType;
-      // 수업 선택 시 즉시 1회 차감 → remaining 1 적게 시작
-      const startRemain = hasClassSelected ? totalRemain - 1 : totalRemain;
-      const now2=new Date();
-      const timeStr2=String(now2.getHours()).padStart(2,'0')+':'+String(now2.getMinutes()).padStart(2,'0');
-      const initHistory = hasClassSelected
-        ? [{date, time:timeStr2, teacher:teacherSnap, cat:catSnap, id:Date.now()}]
-        : [];
+      const startRemain = hasClassSelected ? totalRemain-1 : totalRemain;
       const passData={
         name,phone,payDate:date,
         passType:fPassType,
         remaining:startRemain,
         avIdx:(window.members||[]).length%(window.AV||['av0','av1','av2','av3','av4']).length,
-        memo:'',history:initHistory,
+        memo:'',
         createdAt:firebase.firestore.FieldValue.serverTimestamp(),
       };
       if(fPassType==='basic'){
@@ -2289,19 +2467,32 @@ async function addPayRecord(){
         passData.basicWeeks=parseInt(document.getElementById('f-pass-basic-weeks').value||3);
         if(!passData.basicTeacher){alert('베이직 강사를 선택해 주세요.');return;}
       }
-      (window.setSyncStatus||function(){})('saving');
       try{
-        await dbCompat.collection('members').add(passData);
-        if(hasClassSelected){
-          (window.toast||function(){})(`${name}님 다회권 등록 + 오늘 1회 차감 완료! (잔여 ${startRemain}회)`);
-        } else {
-          (window.toast||function(){})(`${name}님 다회권 등록 완료! (${totalRemain}회권)`);
-        }
+        const ref=await dbCompat.collection('members').add(passData);
+        linkedMemberId=ref.id;
+        if(hasClassSelected) immediateRemaining=startRemain;
+        (window.toast||function(){})(hasClassSelected
+          ? `${name}님 다회권 등록 + 오늘 1회 차감 완료! (잔여 ${startRemain}회)`
+          : `${name}님 다회권 등록 완료! (${totalRemain}회권)`);
       } catch(e){
         (window.toast||function(){})('등록 중 오류: '+e.message);
         return;
       }
     }
+  }
+
+  // 결제 방문기록 — 신규등록이면 방금 만든 재고 문서와 연동ID로 연결
+  try{
+    await recordVisit({
+      name,date,teacher:fTeacher,cat:fCat,
+      visitType: fPassType?'new_pass':'single_ticket',
+      payMethod:fPay, amt:fAmt, ticketType:fTicket,
+      remainingAfter: immediateRemaining,
+      linkedMemberId, linkedProId, note,
+    });
+  }catch(e){
+    (window.toast||function(){})('결제 기록 오류: '+e.message);
+    return;
   }
 
   clearPayForm();
@@ -2315,16 +2506,16 @@ async function deductMemberAndRecord(m,date,note){
   if(m.remaining<=0){alert(`${m.name}님은 잔여 횟수가 없습니다.`);return;}
   if((window.daysLeft||function(){return 0})(m.payDate)<=0){alert(`${m.name}님의 수강권이 만료되었습니다.`);return;}
   if(!fTeacher){alert('수업(강사)을 먼저 선택해 주세요.');return;}
-  const now=new Date();
-  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  const history=[...(m.history||[]),{date,time:timeStr,teacher:fTeacher,cat:fCat,id:Date.now()}];
   (window.setSyncStatus||function(){})('saving');
-  await dbCompat.collection('members').doc(m.id).update({remaining:m.remaining-1,history});
-  const newRemain=m.remaining-1;
-  clearPayForm();
-  (window.toast||function(){})(`${m.name}님 티켓 차감 완료 — 잔여 ${newRemain}회`);
-  const cntEl=document.getElementById('ps-cnt');
-  if(cntEl){cntEl.classList.remove('stat-flash');void cntEl.offsetWidth;cntEl.classList.add('stat-flash');setTimeout(()=>cntEl.classList.remove('stat-flash'),700);}
+  try{
+    const result=await deductAndRecordVisit(m.id,{date,teacher:fTeacher,cat:fCat,note});
+    clearPayForm();
+    (window.toast||function(){})(`${m.name}님 티켓 차감 완료 — 잔여 ${result.newRemaining}회`);
+    const cntEl=document.getElementById('ps-cnt');
+    if(cntEl){cntEl.classList.remove('stat-flash');void cntEl.offsetWidth;cntEl.classList.add('stat-flash');setTimeout(()=>cntEl.classList.remove('stat-flash'),700);}
+  }catch(e){
+    (window.toast||function(){})('차감 오류: '+e.message);
+  }
 }
 
 function clearPayForm(){
@@ -2344,31 +2535,26 @@ function clearPayForm(){
 }
 
 function updatePayStats(){
-  if(!Array.isArray(window.members)||!Array.isArray(window.payRecords)) return;
+  if(!Array.isArray(window.members)||!Array.isArray(window.visits)) return;
   const setText=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
   const today=new Date().toISOString().split('T')[0];
-  const todayRecs=payRecords.filter(r=>r.date===today);
+  const todayRecs=(window.visits||[]).filter(r=>r.date===today&&!r.refunded);
 
   // 물
-  const waterRecs=todayRecs.filter(r=>r.name==='물'||r.water===true);
+  const waterRecs=todayRecs.filter(r=>r.visitType==='water');
   // 실제 결제 (물·전문반수강·티켓차감 제외, 금액 있는 것만)
-  const payRecs=todayRecs.filter(r=>r.name!=='물'&&!r.water&&r.pay!=='전문반'&&r.amt>0);
+  const payRecs=todayRecs.filter(r=>(r.visitType==='new_pass'||r.visitType==='single_ticket')&&r.amt>0);
 
-  const cd=payRecs.filter(r=>r.pay==='카드').length;
-  const tf=payRecs.filter(r=>r.pay==='이체').length;
-  const cs=payRecs.filter(r=>r.pay==='현금').length;
+  const cd=payRecs.filter(r=>r.payMethod==='카드').length;
+  const tf=payRecs.filter(r=>r.payMethod==='이체').length;
+  const cs=payRecs.filter(r=>r.payMethod==='현금').length;
   const payAmt=payRecs.reduce((s,r)=>s+r.amt,0);
 
-  // 티켓 차감 — members history 기준
-  const deductItems=[];
-  (Array.isArray(window.members)?window.members:[]).forEach(m=>{
-    (m.history||[]).forEach(h=>{
-      if(h.date===today) deductItems.push({name:m.name,teacher:h.teacher||'',time:h.time||''});
-    });
-  });
+  // 티켓 차감
+  const deductItems=todayRecs.filter(r=>r.visitType==='deduct').map(r=>({name:r.name,teacher:r.teacher||'',time:r.time||''}));
 
   // 전문반 수강 건수
-  const proCnt=todayRecs.filter(r=>r.ticket==='전문반').length;
+  const proCnt=todayRecs.filter(r=>r.visitType==='pro').length;
 
   // 물 판매
   const waterCnt=waterRecs.length;
@@ -2394,7 +2580,7 @@ function updateTopBtnVisibility(){
   if(!btn) return;
   const isPass=document.getElementById('page-pass').style.display==='block';
   const payTab=window.curPayTab||'input';
-  const showOnPay=(payTab==='monthly'||payTab==='stats'||payTab==='daily');
+  const showOnPay=(payTab==='monthly'||payTab==='stats'||payTab==='daily'||payTab==='teacherpay');
   if(isPass||showOnPay){btn.classList.toggle('visible',window.scrollY>200);}
   else{btn.classList.remove('visible');}
 }
@@ -2405,13 +2591,14 @@ function switchPayTab(id,btn){
   window.curPayTab=id;
   document.querySelectorAll('.pay-nav-btn').forEach(b=>b.classList.remove('on'));
   if(btn) btn.classList.add('on');
-  ['input','daily','monthly','stats','refunds'].forEach(t=>{
+  ['input','daily','monthly','stats','teacherpay','refunds'].forEach(t=>{
     const el=document.getElementById('ptab-'+t);
     if(el) el.style.display=t===id?'block':'none';
   });
   if(id==='daily') renderDaily();
   if(id==='monthly') renderMonthly();
-  if(id==='stats') renderTeacherStats();
+  if(id==='stats') renderClassStats();
+  if(id==='teacherpay') renderTeacherPay();
   if(id==='refunds' && typeof renderRefundsTab==='function') renderRefundsTab();
   updateTopBtnVisibility();
 }
@@ -2429,29 +2616,34 @@ function buildPayTable(data){
       <th style="width:50px">결제</th><th style="width:60px">비고</th><th style="width:70px"></th>
     </tr></thead>
     <tbody>${data.map(r=>{
-      const isTicket=r._isTicket;
-      const isPro=r._isPro;
+      const isTicket=r.visitType==='deduct';
+      const isPro=r.visitType==='pro';
+      const isGuest=r.visitType==='guest';
       const isRefunded=r.refunded===true;
       const rowBg=isTicket?'background:#f0f8f2':isPro?'background:#fdf5ff':isRefunded?'background:#fff5f5':'';
       const refundBadge=isRefunded?`<span style="font-size:10px;padding:1px 6px;border-radius:5px;background:#ffeaea;color:#e24b4a;font-weight:600;margin-left:4px">환불</span>`:'';
-      const amtCell=isTicket
+      const amtCell=(isTicket||isPro)
         ?'<span style="font-size:11px;color:#888">차감</span>'
         :(r.amt>0?`<span style="font-weight:500;${isRefunded?'text-decoration:line-through;color:#ccc':''}">${fmtW(r.amt)}</span>${refundBadge}`:'<span style="color:#aaa">—</span>');
       const payCell=isTicket
         ?'<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#e1f5ee;color:#0f6e56;font-weight:600">티켓</span>'
         :isPro
         ?'<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#f5f0ff;color:#7b4fb5;font-weight:600">전문반</span>'
-        :payBadge(r.pay);
-      const actionCell=isTicket
-        ?`<button class="del-pay-btn" onclick="cancelTicketDeduct('${r._memberId}',${r._histId},'${r._memberName}',${r._memberRemaining})" style="color:#e24b4a">↩ 취소</button>`
-        :`<button class="del-pay-btn" onclick="openRefundModal('${r.firebaseId||r.id}')" style="color:#e24b4a;margin-right:2px">환불</button><button class="del-pay-btn" onclick="openEditPay('${r.id}')" style="color:#666;margin-right:2px">수정</button><button class="del-pay-btn" onclick="delPayRecord('${r.id}')">삭제</button>`;
+        :isGuest
+        ?'<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#e8f5ee;color:#2e7d32;font-weight:600">게스트</span>'
+        :payBadge(r.payMethod);
+      const actionCell=isRefunded
+        ?'<span style="font-size:11px;color:#ccc">환불됨</span>'
+        :isTicket
+        ?`<button class="del-pay-btn" onclick="cancelTicketDeduct('${r.linkedMemberId}','${r.id}')" style="color:#e24b4a">↩ 취소</button>`
+        :`<button class="del-pay-btn" onclick="openRefundModal('${r.id}')" style="color:#e24b4a;margin-right:2px">환불</button><button class="del-pay-btn" onclick="openEditPay('${r.id}')" style="color:#666;margin-right:2px">수정</button><button class="del-pay-btn" onclick="delPayRecord('${r.id}')">삭제</button>`;
       return`<tr style="${rowBg}">
         <td style="color:#888">${r.date}</td>
         <td style="color:#aaa;font-size:11px">${r.time||''}</td>
         <td style="font-weight:500">${r.name}${isPro?'<span style="font-size:9px;padding:1px 5px;border-radius:6px;background:#f5f0ff;color:#7b4fb5;font-weight:700;margin-left:4px;vertical-align:middle">PRO</span>':''}</td>
         <td style="color:#888;font-size:11px">${r.teacher||'—'}</td>
         <td style="font-size:11px;color:#555">${r.cat||'—'}</td>
-        <td>${isTicket?'<span style="font-size:11px;color:#888">🎫 차감</span>':isPro?'<span style="font-size:11px;color:#7b4fb5;font-weight:600">전문반 수강</span>':ticketBadge(r.ticket)}</td>
+        <td>${isTicket?'<span style="font-size:11px;color:#888">🎫 차감</span>':isPro?'<span style="font-size:11px;color:#7b4fb5;font-weight:600">전문반 수강</span>':isGuest?'<span style="font-size:11px;color:#2e7d32">게스트</span>':ticketBadge(r.ticketType)}</td>
         <td>${amtCell}</td>
         <td>${payCell}</td>
         <td style="color:#aaa;font-size:11px;width:60px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.note||'—'}</td>
@@ -2462,29 +2654,16 @@ function buildPayTable(data){
 }
 
 
-async function cancelTicketDeduct(memberId, histId, memberName, currentRemaining){
-  const newRemain = currentRemaining + 1;
-  const confirmed = confirm(
-    `🎫 티켓 차감 취소\n\n` +
-    `${memberName}님의 티켓 차감을 취소하시겠습니까?\n` +
-    `잔여 횟수: ${currentRemaining}회 → ${newRemain}회로 복구됩니다.`
-  );
-  if(!confirmed) return;
-
+async function cancelTicketDeduct(memberId, visitId){
   const m = (window.members||[]).find(x=>x.id===memberId);
-  if(!m){ alert('회원 정보를 찾을 수 없습니다.'); return; }
-
-  // history에서 해당 항목 제거
-  const history = (m.history||[]).filter(h=>h.id!==histId);
-
+  const visit = (window.visits||[]).find(v=>v.id===visitId);
+  const memberName = m?.name || visit?.name || '';
+  const confirmed = confirm(`🎫 티켓 차감 취소\n\n${memberName}님의 티켓 차감을 취소하시겠습니까?`);
+  if(!confirmed) return;
   try{
-    (window.setSyncStatus||function(){}('saving'));
-    await dbCompat.collection('members').doc(memberId).update({
-      remaining: newRemain,
-      history: history
-    });
-    (window.toast||function(){})(memberName+'님 티켓 차감 취소 완료 (잔여 '+newRemain+'회)');
-    // 일별 보기 새로고침
+    (window.setSyncStatus||function(){})('saving');
+    const result = await window.undoDeductVisit(memberId, visitId);
+    (window.toast||function(){})(memberName+'님 티켓 차감 취소 완료 (잔여 '+result.newRemaining+'회)');
     renderDaily();
   } catch(e){
     console.error(e);
@@ -2546,20 +2725,26 @@ async function clearHandoverMemo(){
 async function cancelLastWater(){
   const date=document.getElementById('fd-date').value;
   if(!date) return;
-  function normDateW(v){if(!v)return '';if(typeof v==='object'&&v.toDate)return v.toDate().toISOString().split('T')[0];return String(v).slice(0,10);}
-  const waterRecs=payRecords.filter(r=>normDateW(r.date)===date&&(r.water===true||r.name==='물'));
+  const waterRecs=(window.visits||[]).filter(r=>r.date===date&&r.visitType==='water'&&!r.refunded);
   if(!waterRecs.length){if(window.toast)window.toast('취소할 물 내역이 없습니다.');return;}
   const last=waterRecs.sort((a,b)=>(b.time||'').localeCompare(a.time||''))[0];
-  const fbId=last.firebaseId||String(last.id);
-  await deletePayFromFirebase(fbId);
-  if(window.toast)window.toast('물 1개 취소됐습니다 💧');
+  try{
+    await visitsColRef.doc(String(last.id)).delete();
+    window.visits=(window.visits||[]).filter(r=>String(r.id)!==String(last.id));
+    updatePayStats();
+    if(curPayTab==='daily') renderDaily();
+    if(curPayTab==='monthly') renderMonthly();
+    if(window.toast)window.toast('물 1개 취소됐습니다 💧');
+  }catch(e){ console.error('물 취소 오류:',e); if(window.toast)window.toast('취소 중 오류: '+e.message); }
 }
 
 function delPayRecord(id){
   if(!confirm('삭제할까요?'))return;
-  const rec=payRecords.find(r=>r.id===id||r.id===String(id));
-  const fbId=rec?.firebaseId||rec?.id||String(id);
-  deletePayFromFirebase(fbId); // onSnapshot이 자동으로 감지해서 즉시 반영
+  visitsColRef.doc(String(id)).delete().then(()=>{
+    window.visits=(window.visits||[]).filter(r=>String(r.id)!==String(id));
+    if(curPayTab==='daily') renderDaily();
+    if(curPayTab==='monthly') renderMonthly();
+  }).catch(e=>{ console.error('삭제 오류:',e); (window.toast||function(){})('삭제 오류: '+e.message); });
 }
 
 function renderDaily(){
@@ -2567,31 +2752,27 @@ function renderDaily(){
   const date=document.getElementById('fd-date').value;
   if(!date) return;
   const cat=document.getElementById('fd-cat').value;
-  // r.date가 Firebase Timestamp이거나 포맷이 다를 수 있어서 문자열로 정규화 후 비교
   function normDate(v){
     if(!v) return '';
     if(typeof v==='object'&&v.toDate) return v.toDate().toISOString().split('T')[0];
     return String(v).slice(0,10);
   }
-  let d=payRecords.filter(r=>normDate(r.date)===date&&(!cat||r.cat===cat));
-  const waterRecs=d.filter(r=>r.name==='물'||r.water===true);
-  // 실제 결제: 물·전문반수강·티켓차감 제외, 금액 있는 것
-  const payRecs=d.filter(r=>r.name!=='물'&&!r.water&&r.pay!=='전문반'&&r.amt>0);
-  // 총 매출 = 실제결제 + 물 (전문반·티켓 0원 제외)
+  const d=(window.visits||[]).filter(r=>normDate(r.date)===date&&(!cat||r.cat===cat));
+  const waterRecs=d.filter(r=>r.visitType==='water'&&!r.refunded);
+  // 실제 결제: 물·전문반·티켓차감 제외, 환불 안 된 것
+  const payRecs=d.filter(r=>(r.visitType==='new_pass'||r.visitType==='single_ticket')&&r.amt>0&&!r.refunded);
   const tot=payRecs.reduce((s,r)=>s+r.amt,0)+waterRecs.reduce((s,r)=>s+r.amt,0);
-  // 오늘 환불 차감
-  const todayRefunds=(window.refundRecords||[]).filter(r=>(r.date||'').slice(0,10)===date);
+  // 오늘 처리된 환불 (원래 날짜와 무관, refundDate 기준)
+  const todayRefunds=(window.visits||[]).filter(r=>r.refundDate===date);
   const refundAmt=todayRefunds.reduce((s,r)=>s+(r.refundAmt||0),0);
   const netAmt=tot-refundAmt;
-  const cd=d.filter(r=>r.pay==='카드').reduce((s,r)=>s+r.amt,0);
-  const tf=d.filter(r=>r.pay==='이체').reduce((s,r)=>s+r.amt,0);
-  const cs=d.filter(r=>r.pay==='현금').reduce((s,r)=>s+r.amt,0);
+  const cd=d.filter(r=>r.payMethod==='카드'&&!r.refunded&&r.amt>0).reduce((s,r)=>s+r.amt,0);
+  const tf=d.filter(r=>r.payMethod==='이체'&&!r.refunded&&r.amt>0).reduce((s,r)=>s+r.amt,0);
+  const cs=d.filter(r=>r.payMethod==='현금'&&!r.refunded&&r.amt>0).reduce((s,r)=>s+r.amt,0);
   const waterCnt=waterRecs.length;
   const waterAmt=waterRecs.reduce((s,r)=>s+r.amt,0);
-  // 티켓 차감 (members history 기준)
-  const deductCnt=(window.members||[]).reduce((s,m)=>s+((m.history||[]).filter(h=>normDate(h.date)===date).length),0);
-  // 전문반 수강 건수
-  const proCnt=d.filter(r=>r.ticket==='전문반').length;
+  const deductCnt=d.filter(r=>r.visitType==='deduct').length;
+  const proCnt=d.filter(r=>r.visitType==='pro').length;
   document.getElementById('daily-mini').innerHTML=`
     <div class="mini-stat"><div class="ml">당일 총 매출</div><div class="mv" style="color:#204828">${fmtW(netAmt)}${refundAmt>0?`<span style="font-size:10px;color:#e24b4a;display:block">환불 -${fmtW(refundAmt)}</span>`:''}</div></div>
     <div class="mini-stat"><div class="ml">카드 / 이체 / 현금</div><div class="mv" style="font-size:12px">${fmtW(cd)} / ${fmtW(tf)} / ${fmtW(cs)}</div></div>
@@ -2601,7 +2782,7 @@ function renderDaily(){
     <div class="mini-stat"><div class="ml">물 💧</div><div class="mv" style="color:#2176ae">${waterCnt}개 · ${fmtW(waterAmt)}</div></div>
     ${todayRefunds.length?`<div class="mini-stat"><div class="ml">환불</div><div class="mv" style="color:#e24b4a">${todayRefunds.length}건 · -${fmtW(refundAmt)}</div></div>`:''}`;
   document.getElementById('daily-mini').style.gridTemplateColumns=`repeat(${5+(proCnt?1:0)+(todayRefunds.length?1:0)},minmax(0,1fr))`;
-  // 환불 목록 (해당 날짜에 처리된 환불건)
+  // 환불 목록 (오늘 처리된 것)
   const rfWrap=document.getElementById('daily-refunds');
   if(rfWrap){
     rfWrap.innerHTML = todayRefunds.length ? `
@@ -2611,43 +2792,16 @@ function renderDaily(){
           <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5eaea">
             <div>
               <span style="font-weight:600">${r.name||''}</span>
-              <span style="font-size:11px;color:#aaa;margin-left:6px">${r.refundMethod||''} · ${r.reason||''}</span>
-              <div style="font-size:10px;color:#ccc;margin-top:2px">원결제 ${r.originalDate||''} · ${r.originalTicket||''} ${fmtW(r.originalAmt||0)}</div>
+              <span style="font-size:11px;color:#aaa;margin-left:6px">${r.refundMethod||''} · ${r.refundReason||''}</span>
+              <div style="font-size:10px;color:#ccc;margin-top:2px">원결제 ${r.date||''} · ${r.ticketType||''} ${fmtW(r.amt||0)}</div>
             </div>
             <span style="font-weight:700;color:#e24b4a;font-variant-numeric:tabular-nums">-${fmtW(r.refundAmt||0)}</span>
           </div>
         `).join('')}
       </div>` : '';
   }
-  // 티켓 차감 내역 → 가상 레코드로 변환
-  const ticketRows=[];
-  (Array.isArray(window.members)?window.members:[]).forEach(m=>{
-    (m.history||[]).filter(h=>normDate(h.date)===date).forEach(h=>{
-      ticketRows.push({
-        id:'hist-'+h.id,
-        date:h.date,
-        time:h.time||'',
-        name:m.name,
-        teacher:h.teacher||'',
-        cat:h.cat||'',
-        ticket:'🎫 티켓 차감',
-        amt:0,
-        pay:'다회권',
-        note:'',
-        _isTicket:true,
-        _histId:h.id,
-        _memberId:m.id,
-        _memberRemaining:m.remaining,
-        _memberName:m.name
-      });
-    });
-  });
-  // 전문반 내역 (payRecords에서 ticket==='전문반' 인 것)
-  const proRows=d.filter(r=>r.ticket==='전문반').map(r=>({...r,_isPro:true}));
-  // 일반 결제 (전문반·물 제외)
-  const normalRows=d.filter(r=>r.ticket!=='전문반'&&r.name!=='물'&&!r.water);
-  // 합쳐서 시간 역순 정렬
-  const allRows=[...normalRows,...proRows,...ticketRows].sort((a,b)=>{
+  // 시간 역순 정렬 — visits 하나만 보면 되니 더 이상 여러 소스를 합칠 필요 없음
+  const allRows=[...d].sort((a,b)=>{
     if(!a.time&&!b.time) return 0;
     if(!a.time) return 1;
     if(!b.time) return -1;
@@ -2660,35 +2814,41 @@ function renderDaily(){
 
 function renderMonthly(){
   const cat=document.getElementById('fm-cat').value;
-  // 해당 월 데이터 소스: 실시간 구독 범위 안이면 payRecords, 밖이면 1회성 조회 캐시
-  function dataForMonth(m){
-    if(window.payLiveWindowStart && m>=window.payLiveWindowStart.slice(0,7)) return payRecords.filter(r=>r.date.startsWith(m));
-    return (window.oldMonthCache&&oldMonthCache[m])||[];
+  const teacherSel=document.getElementById('fm-teacher');
+  if(teacherSel&&teacherSel.options.length<=1){
+    const list=[...new Set(payTeachers||ALL_TEACHERS_DEFAULT)].sort();
+    teacherSel.innerHTML='<option value="">전체 강사</option>'+list.map(t=>`<option>${t}</option>`).join('');
   }
-  const liveMonths=[...new Set(payRecords.map(r=>r.date.slice(0,7)))];
-  const cachedMonths=Object.keys(window.oldMonthCache||{});
+  const teacher=teacherSel?teacherSel.value:'';
+  // 해당 월 데이터 소스: 실시간 구독 범위 안이면 visits, 밖이면 1회성 조회 캐시
+  function dataForMonth(m){
+    if(window.payLiveWindowStart && m>=window.payLiveWindowStart.slice(0,7)) return (window.visits||[]).filter(r=>r.date.startsWith(m));
+    return (window.oldMonthVisitsCache&&oldMonthVisitsCache[m])||[];
+  }
+  const liveMonths=[...new Set((window.visits||[]).map(r=>r.date.slice(0,7)))];
+  const cachedMonths=Object.keys(window.oldMonthVisitsCache||{});
   const months=[...new Set([...liveMonths,...cachedMonths])].sort().reverse();
   if(!months.length){document.getElementById('month-grid').innerHTML='';document.getElementById('monthly-tbl').innerHTML='<div style="text-align:center;padding:2rem;color:#aaa;font-size:13px">데이터가 없습니다</div>';return;}
   if(!selMonthPay||!months.includes(selMonthPay)) selMonthPay=months[0];
+  function applyFilters(d){ return d.filter(r=>(!cat||r.cat===cat)&&(!teacher||r.teacher===teacher)); }
   document.getElementById('month-grid').innerHTML=months.map(m=>{
-    let d=dataForMonth(m).filter(r=>!cat||r.cat===cat);
-    // 실제 결제만 (전문반수강·티켓차감 제외)
-    const payOnly=d.filter(r=>r.name!=='물'&&!r.water&&r.pay!=='전문반'&&r.amt>0);
-    const waterOnly=d.filter(r=>r.name==='물'||r.water===true);
+    let d=applyFilters(dataForMonth(m));
+    const payOnly=d.filter(r=>(r.visitType==='new_pass'||r.visitType==='single_ticket')&&r.amt>0&&!r.refunded);
+    const waterOnly=d.filter(r=>r.visitType==='water'&&!r.refunded);
     const grossTot=payOnly.reduce((s,r)=>s+r.amt,0)+waterOnly.reduce((s,r)=>s+r.amt,0);
-    const monthRefunds=(window.refundRecords||[]).filter(r=>(r.date||'').startsWith(m));
+    const monthRefunds=d.filter(r=>(r.refundDate||'').startsWith(m));
     const refundAmt=monthRefunds.reduce((s,r)=>s+(r.refundAmt||0),0);
     const tot=grossTot-refundAmt;
     return`<div class="mcrd${m===selMonthPay?' sel':''}" onclick="selMonthPay='${m}';renderMonthly()">
       <div class="mm">${m}</div><div class="mv">${fmtW(tot)}</div>${refundAmt>0?`<div class="mc" style="color:#e24b4a">환불 -${fmtW(refundAmt)}</div>`:''}<div class="mc">${payOnly.length+waterOnly.length}건</div></div>`;
   }).join('');
-  let data=dataForMonth(selMonthPay).filter(r=>!cat||r.cat===cat);
+  let data=applyFilters(dataForMonth(selMonthPay));
   document.getElementById('monthly-tbl').innerHTML=buildPayTable(data);
   renderMonthlyChart(months,m=>{
-    const d=dataForMonth(m).filter(r=>!cat||r.cat===cat);
-    const pay=d.filter(r=>r.name!=='물'&&!r.water&&r.pay!=='전문반'&&r.amt>0).reduce((s,r)=>s+r.amt,0);
-    const water=d.filter(r=>r.name==='물'||r.water===true).reduce((s,r)=>s+r.amt,0);
-    const monthRefunds=(window.refundRecords||[]).filter(r=>(r.date||'').startsWith(m));
+    const d=applyFilters(dataForMonth(m));
+    const pay=d.filter(r=>(r.visitType==='new_pass'||r.visitType==='single_ticket')&&r.amt>0&&!r.refunded).reduce((s,r)=>s+r.amt,0);
+    const water=d.filter(r=>r.visitType==='water'&&!r.refunded).reduce((s,r)=>s+r.amt,0);
+    const monthRefunds=d.filter(r=>(r.refundDate||'').startsWith(m));
     const refundAmt=monthRefunds.reduce((s,r)=>s+(r.refundAmt||0),0);
     return pay+water-refundAmt;
   });
@@ -2696,33 +2856,124 @@ function renderMonthly(){
 }
 
 function populateStatMonths(){
-  const sel=document.getElementById('st-month');
-  const cur=sel.value;
-  const months=[...new Set(payRecords.map(r=>r.date.slice(0,7)))].sort().reverse();
-  sel.innerHTML='<option value="">전체 기간</option>'+months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${m}</option>`).join('');
+  const months=[...new Set((window.visits||[]).map(r=>r.date.slice(0,7)))].sort().reverse();
+  const opts=(cur)=>'<option value="">전체 기간</option>'+months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${m}</option>`).join('');
+  const cs=document.getElementById('cs-month');
+  if(cs) cs.innerHTML=opts(cs.value);
+  const tp=document.getElementById('tp-month');
+  if(tp) tp.innerHTML=opts(tp.value);
 }
 
-function renderTeacherStats(){
+window.openTeacherRateModal=function(){
+  document.getElementById('teacher-rate-modal').classList.add('show');
+  window.renderTeacherRateSettings();
+};
+window.closeTeacherRateModal=function(){
+  document.getElementById('teacher-rate-modal').classList.remove('show');
+};
+window.renderTeacherRateSettings=function(){
+  const wrap=document.getElementById('teacher-rate-list');
+  if(!wrap) return;
+  const list=[...new Set(payTeachers||ALL_TEACHERS_DEFAULT)].sort();
+  const rates=window.teacherPayRates||{};
+  wrap.innerHTML=list.map(t=>{
+    const rate=rates[t]||5000;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0ec">
+      <span style="font-size:13px;font-weight:500">${t}</span>
+      <div style="display:flex;gap:4px">
+        <button onclick="saveTeacherRate('${t}',5000)" style="padding:5px 12px;font-size:11px;border-radius:8px;border:1px solid ${rate===5000?'#204828':'#e0e0da'};background:${rate===5000?'#204828':'#fff'};color:${rate===5000?'#fff':'#555'};cursor:pointer;font-family:inherit">5,000원</button>
+        <button onclick="saveTeacherRate('${t}',7000)" style="padding:5px 12px;font-size:11px;border-radius:8px;border:1px solid ${rate===7000?'#204828':'#e0e0da'};background:${rate===7000?'#204828':'#fff'};color:${rate===7000?'#fff':'#555'};cursor:pointer;font-family:inherit">7,000원</button>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+function renderClassStats(){
   populateStatMonths();
-  const month=document.getElementById('st-month').value;
-  const recs=month?payRecords.filter(r=>r.date.startsWith(month)):payRecords;
+  const month=document.getElementById('cs-month')?document.getElementById('cs-month').value:'';
+  const recs=(month?(window.visits||[]).filter(r=>r.date.startsWith(month)):(window.visits||[]));
   renderDowChart(month);
-  renderCatPieChart(recs);
+  renderCatPieChart(recs.filter(r=>!r.refunded));
   renderTicketPieChart(recs);
+  // 환불 사유별 통계
+  const refundWrap=document.getElementById('refund-reason-wrap');
+  if(refundWrap){
+    const refunded=recs.filter(r=>r.refunded);
+    if(!refunded.length){
+      refundWrap.innerHTML='';
+    } else {
+      const reasonMap={};
+      refunded.forEach(r=>{
+        const rs=r.refundReason||'사유 없음';
+        if(!reasonMap[rs]) reasonMap[rs]={cnt:0,amt:0};
+        reasonMap[rs].cnt++; reasonMap[rs].amt+=(r.refundAmt||0);
+      });
+      const rows=Object.entries(reasonMap).sort((a,b)=>b[1].cnt-a[1].cnt);
+      refundWrap.innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:8px">💸 환불 사유별 (${refunded.length}건 · -${fmtW(refunded.reduce((s,r)=>s+(r.refundAmt||0),0))})</div>`
+        +rows.map(([reason,d])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0ec;font-size:12px">
+          <span>${reason}</span><span style="color:#888">${d.cnt}건 · -${fmtW(d.amt)}</span>
+        </div>`).join('');
+    }
+  }
+}
+
+function renderTeacherPay(){
+  populateStatMonths();
+  const month=document.getElementById('tp-month')?document.getElementById('tp-month').value:'';
+  const recs=(month?(window.visits||[]).filter(r=>r.date.startsWith(month)):(window.visits||[]));
+  // 확정(잠금) 상태 확인 — 캐시에 없으면 비동기로 불러온 뒤 재렌더
+  let lock=null;
+  if(month){
+    lock=window.payrollLockCache[month];
+    if(lock===undefined){ window.loadPayrollLock(month).then(()=>renderTeacherPay()); }
+  }
   const map={};
-  recs.forEach(r=>{
+  recs.filter(r=>!r.refunded).forEach(r=>{
     if(!r.teacher) return;
-    if(!map[r.teacher]) map[r.teacher]={total:0,amt:0,tickets:{},students:new Set(),dates:{}};
+    if(!map[r.teacher]) map[r.teacher]={total:0,amt:0,pay:0,tickets:{},students:new Set(),dates:{}};
     map[r.teacher].total++;
-    map[r.teacher].amt+=(r.amt||0)-(r.refunded?(r.refundAmt||0):0);
-    map[r.teacher].tickets[r.ticket]=(map[r.teacher].tickets[r.ticket]||0)+1;
+    map[r.teacher].amt+=(r.amt||0);
+    map[r.teacher].pay+=window.visitPayCredit(r);
+    const tk=r.ticketType||(r.visitType==='guest'?'게스트':r.visitType==='pro'?'전문반':r.visitType==='water'?'물':'기타');
+    map[r.teacher].tickets[tk]=(map[r.teacher].tickets[tk]||0)+1;
     map[r.teacher].students.add(r.name);
     if(!map[r.teacher].dates[r.date]) map[r.teacher].dates[r.date]={count:0,names:[]};
     map[r.teacher].dates[r.date].count++;
     map[r.teacher].dates[r.date].names.push(r.name);
   });
+  const liveTotalPay=Object.values(map).reduce((s,d)=>s+d.pay,0);
+  if(month&&lock&&lock.rates){
+    // 확정된 달 — 페이만 스냅샷 값으로 덮어씀 (매출·인원 등 나머지는 계속 실시간)
+    Object.keys(map).forEach(t=>{ map[t].pay=lock.rates[t]||0; });
+    Object.keys(lock.rates).forEach(t=>{ if(!map[t]) map[t]={total:0,amt:0,pay:lock.rates[t],tickets:{},students:new Set(),dates:{}}; });
+  }
+  // 강사페이 확정/CSV 영역 (특정 월 선택했을 때만)
+  const payrollWrap=document.getElementById('payroll-confirm-wrap');
+  if(payrollWrap){
+    if(!month){
+      payrollWrap.innerHTML='';
+    } else if(lock&&lock.rates){
+      payrollWrap.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;background:#fdf3e3;border:1px solid #f0d9a8;border-radius:10px;padding:10px 14px;margin-bottom:10px">
+        <span style="font-size:12px;color:#854f0b;font-weight:600">🔒 ${month.replace('-','년 ')}월 확정됨 · 총 ${fmtW(lock.totalAmt||0)}</span>
+        <div style="display:flex;gap:6px">
+          <button onclick="exportPayrollCSV('${month}')" style="padding:5px 10px;font-size:11px;border-radius:7px;border:1px solid #854f0b;background:#fff;color:#854f0b;cursor:pointer;font-family:inherit">CSV 내보내기</button>
+          <button onclick="unlockPayroll('${month}')" style="padding:5px 10px;font-size:11px;border-radius:7px;border:1px solid #e0e0da;background:#fff;color:#888;cursor:pointer;font-family:inherit">확정 취소</button>
+        </div>
+      </div>`;
+    } else {
+      const payMapSnapshot={}; Object.entries(map).forEach(([t,d])=>{payMapSnapshot[t]=d.pay;});
+      payrollWrap.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e0e0da;border-radius:10px;padding:10px 14px;margin-bottom:10px">
+        <span style="font-size:12px;color:#888">${month.replace('-','년 ')}월 강사페이 합계 <b style="color:#204828">${fmtW(liveTotalPay)}</b> — 아직 미확정 (실시간)</span>
+        <div style="display:flex;gap:6px">
+          <button onclick="exportPayrollCSV('${month}')" style="padding:5px 10px;font-size:11px;border-radius:7px;border:1px solid #e0e0da;background:#fff;color:#555;cursor:pointer;font-family:inherit">CSV 내보내기</button>
+          <button onclick='confirmPayroll("${month}",${JSON.stringify(payMapSnapshot)},${liveTotalPay})' style="padding:5px 10px;font-size:11px;border-radius:7px;border:1px solid #204828;background:#204828;color:#fff;cursor:pointer;font-family:inherit">이 달 확정</button>
+        </div>
+      </div>`;
+    }
+  }
   const sorted=Object.entries(map).sort((a,b)=>b[1].amt-a[1].amt);
   const wrap=document.getElementById('teacher-stats-wrap');
+  if(!wrap) return;
   if(!sorted.length){wrap.innerHTML='<div style="text-align:center;padding:2rem;color:#aaa;font-size:13px">데이터가 없습니다</div>';return;}
   const tCol={'1 Ticket':'#faeeda','4 Tickets':'#e8f5e9','8 Tickets':'#eeedfe','월등록':'#fce4ec'};
   const tTxt={'1 Ticket':'#633806','4 Tickets':'#1b5e20','8 Tickets':'#311b92','월등록':'#560027'};
@@ -2741,6 +2992,7 @@ function renderTeacherStats(){
       +'<div class="teacher-stat-hd" onclick="toggleTD('+idx+')">'
       +'<span class="ts-name">'+teacher+'</span>'
       +'<span class="ts-cnt" style="font-weight:700;color:#204828;font-variant-numeric:tabular-nums">'+fmtW(data.amt)+'</span>'
+      +'<span class="ts-cnt" style="font-weight:700;color:#c07a1f;font-variant-numeric:tabular-nums">페이 '+fmtW(data.pay)+'</span>'
       +'<span class="ts-cnt">총 '+data.total+'건 · '+data.students.size+'명</span>'
       +'<div class="ts-tags">'+tkHtml+'</div>'
       +'<span class="ts-arrow" id="tsa-'+idx+'">▼</span>'
@@ -2752,6 +3004,8 @@ function renderTeacherStats(){
       +'</div></div>';
   }).join('');
 }
+window.renderClassStats=renderClassStats;
+window.renderTeacherPay=renderTeacherPay;
 
 function toggleTD(idx){
   var d=document.getElementById('tsd-'+idx);
@@ -2772,16 +3026,16 @@ function switchDowTab(mode){
   if(btnCnt) btnCnt.style.cssText=btnCnt.style.cssText.replace(/background[^;]+;|color[^;]+;|font-weight[^;]+;|box-shadow[^;]+;/g,'');
   if(btnAmt) Object.assign(btnAmt.style, mode==='amt'?{background:'#fff',color:'#1a1a1a',fontWeight:'600',boxShadow:'0 1px 3px rgba(0,0,0,.06)'}:{background:'transparent',color:'#aaa',fontWeight:'500',boxShadow:'none'});
   if(btnCnt) Object.assign(btnCnt.style, mode==='cnt'?{background:'#fff',color:'#1a1a1a',fontWeight:'600',boxShadow:'0 1px 3px rgba(0,0,0,.06)'}:{background:'transparent',color:'#aaa',fontWeight:'500',boxShadow:'none'});
-  var curMonth=document.getElementById('st-month')?document.getElementById('st-month').value:'';
+  var curMonth=document.getElementById('cs-month')?document.getElementById('cs-month').value:'';
   renderDowChart(curMonth);
 }
 
 function renderDowChart(month){
   var canvas=document.getElementById('dow-chart');
   if(!canvas||typeof Chart==='undefined') return;
-  // 실제 결제 레코드만 (전문반·물 제외)
-  var base=month?payRecords.filter(function(r){return r.date.startsWith(month);}):payRecords;
-  var recs=base.filter(function(r){return r.name!=='물'&&!r.water&&r.pay!=='전문반'&&r.amt>0;});
+  // 실제 방문(환불 제외) — visits 하나만 보면 됨
+  var base=month?(window.visits||[]).filter(function(r){return r.date.startsWith(month);}):(window.visits||[]);
+  var recs=base.filter(function(r){return !r.refunded;});
   var dows=['일','월','화','수','목','금','토'];
   var DOW_COLORS=['#FF8A80','#82B1FF','#B9F6CA','#FFD180','#EA80FC','#80D8FF','#CCFF90'];
   // 요일별 날짜셋 / 매출합 / 인원셋
@@ -2790,19 +3044,9 @@ function renderDowChart(month){
   var pplMap={0:new Set(),1:new Set(),2:new Set(),3:new Set(),4:new Set(),5:new Set(),6:new Set()};
   recs.forEach(function(r){
     var dow=new Date(r.date+'T00:00:00').getDay();
-    sumMap[dow]+=r.amt;
+    sumMap[dow]+=(r.amt||0);
     daySet[dow].add(r.date);
-    if(r.name) pplMap[dow].add(r.date+'__'+r.name);
-  });
-  // 티켓 차감 인원도 합산
-  (Array.isArray(window.members)?window.members:[]).forEach(function(m){
-    (m.history||[]).forEach(function(h){
-      if(!h.date) return;
-      if(month&&!h.date.startsWith(month)) return;
-      var dow=new Date(h.date+'T00:00:00').getDay();
-      daySet[dow].add(h.date);
-      pplMap[dow].add(h.date+'__'+m.name);
-    });
+    if(r.name&&r.visitType!=='water') pplMap[dow].add(r.date+'__'+r.name);
   });
   var isAmt=_dowMode==='amt';
   var avgAmts=dows.map(function(_,i){return daySet[i].size>0?Math.round(sumMap[i]/daySet[i].size):0;});
@@ -2888,35 +3132,29 @@ function renderTicketPieChart(recs){
   var canvas=document.getElementById('ticket-pie-chart');
   var legend=document.getElementById('ticket-pie-legend');
   if(!canvas||typeof Chart==='undefined') return;
-  var tickets=['1 Ticket','4 Tickets','8 Tickets','Basic 월등록','PRO','예약금','기타'];
-  var colors=['#faeeda','#e8f5e9','#eeedfe','#fff3e0','#f5f0ff','#ede7f6','#f5f5f0'];
-  var txtColors=['#854f0b','#1b5e20','#311b92','#e65100','#7b4fb5','#4a148c','#888'];
-  // 실제 결제(카드·이체·현금)만
-  var paid=recs.filter(function(r){return r.pay==='카드'||r.pay==='이체'||r.pay==='현금';});
-  function matchTicket(ticket){
-    if(!ticket) return '기타';
-    if(ticket==='1 Ticket') return '1 Ticket';
-    if(ticket==='4 Tickets') return '4 Tickets';
-    if(ticket==='8 Tickets') return '8 Tickets';
-    if(ticket==='Basic 월등록'||ticket==='basic'||ticket==='Basic') return 'Basic 월등록';
-    if(ticket==='PRO'||ticket==='pro') return 'PRO';
-    if(ticket==='예약금') return '예약금';
+  var types=['신규등록','차감','게스트','전문반','1회권','물'];
+  var txtColors=['#1b5e20','#311b92','#2e7d32','#7b4fb5','#854f0b','#0c447c'];
+  function matchType(vt){
+    if(vt==='new_pass') return '신규등록';
+    if(vt==='deduct') return '차감';
+    if(vt==='guest') return '게스트';
+    if(vt==='pro') return '전문반';
+    if(vt==='single_ticket') return '1회권';
+    if(vt==='water') return '물';
     return '기타';
   }
+  var active=recs.filter(function(r){return !r.refunded;});
   var countMap={};
-  var amtMap={};
-  tickets.forEach(function(t){countMap[t]=0;amtMap[t]=0;});
-  paid.forEach(function(r){
-    var t=matchTicket(r.ticket);
+  types.forEach(function(t){countMap[t]=0;});
+  active.forEach(function(r){
+    var t=matchType(r.visitType);
     countMap[t]=(countMap[t]||0)+1;
-    amtMap[t]=(amtMap[t]||0)+r.amt;
   });
-  var vals=tickets.map(function(t){return countMap[t]||0;});
+  var vals=types.map(function(t){return countMap[t]||0;});
   var total=vals.reduce(function(a,b){return a+b;},0);
   var ex=Chart.getChart(canvas); if(ex) ex.destroy();
   if(!total){if(legend)legend.innerHTML='<span style="font-size:12px;color:#aaa">데이터 없음</span>';return;}
-  // 0인 항목 제외
-  var filtered=tickets.map(function(t,i){return{t,i,v:vals[i],a:amtMap[t]};}).filter(function(x){return x.v>0;});
+  var filtered=types.map(function(t,i){return{t:t,i:i,v:vals[i]};}).filter(function(x){return x.v>0;});
   new Chart(canvas,{
     type:'doughnut',
     data:{
@@ -2959,37 +3197,29 @@ function renderDailyDetail(){
   var ym=selMonthPay;
   if(title) title.textContent=ym.replace('-','년 ')+'월 일별 상세';
 
-  // 해당 월 payRecords
-  var monthRecs=payRecords.filter(function(r){return r.date&&r.date.startsWith(ym);});
-  // 티켓 차감 포함 인원 (members history)
-  var deductByDate={};
-  (Array.isArray(window.members)?window.members:[]).forEach(function(m){
-    (m.history||[]).forEach(function(h){
-      if(!h.date||!h.date.startsWith(ym)) return;
-      if(!deductByDate[h.date]) deductByDate[h.date]=new Set();
-      deductByDate[h.date].add(m.name);
-    });
-  });
+  // 해당 월 visits
+  var monthRecs=(window.visits||[]).filter(function(r){return r.date&&r.date.startsWith(ym);});
 
   // 날짜별 집계
   var daysInMonth=new Date(parseInt(ym.split('-')[0]),parseInt(ym.split('-')[1]),0).getDate();
   var rows=[];
   for(var day=1;day<=daysInMonth;day++){
     var d=ym+'-'+String(day).padStart(2,'0');
-    var recs=monthRecs.filter(function(r){return r.date===d;});
-    var payRecs=recs.filter(function(r){return r.name!=='물'&&!r.water&&r.pay!=='전문반'&&r.amt>0;});
-    var waterRecs=recs.filter(function(r){return r.name==='물'||r.water===true;});
-    var proRecs=recs.filter(function(r){return r.ticket==='전문반';});
+    var recs=monthRecs.filter(function(r){return r.date===d&&!r.refunded;});
+    var payRecs=recs.filter(function(r){return (r.visitType==='new_pass'||r.visitType==='single_ticket')&&r.amt>0;});
+    var waterRecs=recs.filter(function(r){return r.visitType==='water';});
+    var proRecs=recs.filter(function(r){return r.visitType==='pro';});
+    var ticketRecs=recs.filter(function(r){return r.visitType==='deduct';});
     var amt=payRecs.reduce(function(s,r){return s+r.amt;},0)+waterRecs.reduce(function(s,r){return s+r.amt;},0);
     // 인원: 결제 이름 유니크 + 티켓차감 유니크 + 전문반
     var pplSet=new Set();
     payRecs.forEach(function(r){if(r.name)pplSet.add(r.name);});
     proRecs.forEach(function(r){if(r.name)pplSet.add(r.name+'_pro');});
-    if(deductByDate[d]) deductByDate[d].forEach(function(n){pplSet.add(n+'_tkt');});
+    ticketRecs.forEach(function(r){if(r.name)pplSet.add(r.name+'_tkt');});
     var ppl=pplSet.size;
     var dow=new Date(d+'T00:00:00').getDay();
     var dowLabel=['일','월','화','수','목','금','토'][dow];
-    rows.push({d,day,dow,dowLabel,amt,ppl,payRecs,proRecs,deductCnt:deductByDate[d]?deductByDate[d].size:0});
+    rows.push({d,day,dow,dowLabel,amt,ppl,payRecs,proRecs,deductCnt:ticketRecs.length});
   }
 
   var isAmt=_ddMode==='amt';
@@ -3197,7 +3427,9 @@ async function migrateToFirebase(){
 // ── 자동완성 ──
 function getNameSuggestions(q){
   if(!q||q.length<1) return [];
-  const names=[...new Set(payRecords.map(r=>r.name).filter(Boolean))];
+  const fromVisits=(window.visits||[]).map(r=>r.name);
+  const fromMembers=(window.members||[]).map(m=>m.name);
+  const names=[...new Set([...fromVisits,...fromMembers].filter(Boolean))];
   return names.filter(n=>n.includes(q)).slice(0,6);
 }
 function showAcList(q){
@@ -3218,16 +3450,16 @@ function pickAc(name){
 
 // ── 결제 수정 ──
 function openEditPay(id){
-  const r=payRecords.find(x=>x.id===id||x.id===String(id));
+  const r=(window.visits||[]).find(x=>String(x.id)===String(id));
   if(!r) return;
   document.getElementById('ep-id').value=id;
   document.getElementById('ep-name').value=r.name||'';
   document.getElementById('ep-date').value=r.date||'';
   document.getElementById('ep-teacher').value=r.teacher||'';
   document.getElementById('ep-cat').value=r.cat||'';
-  document.getElementById('ep-ticket').value=r.ticket||'';
+  document.getElementById('ep-ticket').value=r.ticketType||'';
   document.getElementById('ep-amt').value=r.amt||0;
-  document.getElementById('ep-pay').value=r.pay||'카드';
+  document.getElementById('ep-pay').value=r.payMethod||'카드';
   document.getElementById('ep-note').value=r.note||'';
   document.getElementById('edit-pay-modal').classList.add('show');
 }
@@ -3447,20 +3679,15 @@ async function saveEditPay(){
     date:document.getElementById('ep-date').value,
     teacher:document.getElementById('ep-teacher').value.trim(),
     cat:document.getElementById('ep-cat').value,
-    ticket:document.getElementById('ep-ticket').value,
+    ticketType:document.getElementById('ep-ticket').value,
     amt:parseInt(document.getElementById('ep-amt').value)||0,
-    pay:document.getElementById('ep-pay').value,
+    payMethod:document.getElementById('ep-pay').value,
     note:document.getElementById('ep-note').value.trim(),
   };
   try{
-    const rec=payRecords.find(r=>r.id===id||r.id===String(id));
-    const fbId=rec?.firebaseId||rec?.id||String(id);
-    await dbCompat.collection('payRecords').doc(fbId).update(updated);
-    // 로컬 배열 즉시 업데이트
-    const idx=payRecords.findIndex(r=>r.id===id||r.id===String(id));
-    if(idx!==-1) payRecords[idx]=Object.assign({},payRecords[idx],updated);
-    window.payRecords=payRecords;
-    updatePayStats();
+    await visitsColRef.doc(String(id)).update(updated);
+    const idx=(window.visits||[]).findIndex(r=>String(r.id)===String(id));
+    if(idx!==-1) window.visits[idx]=Object.assign({},window.visits[idx],updated);
     if(curPayTab==='daily') renderDaily();
     if(curPayTab==='monthly') renderMonthly();
   }catch(e){
@@ -3480,53 +3707,43 @@ function renderDailyClosing(recs, date){
   if(!wrap) return;
   if(!recs.length){wrap.innerHTML='';return;}
 
-  // 물 분리 (표시용으로만 분리, 합계는 포함)
-  const waterRecs=recs.filter(r=>r.water===true||(r.amt===1000&&r.name==='물')||r.name==='물');
-  const payRecs=recs.filter(r=>r.name!=='물'&&!r.water);
+  const waterRecs=recs.filter(r=>r.visitType==='water'&&!r.refunded);
+  const payRecs=recs.filter(r=>r.visitType!=='water');
 
-  // 결제 금액 합계: 실제 결제(카드·이체·현금) + 물만 포함, 전문반·다회권 0원 제외
-  const total=recs.filter(r=>r.pay==='카드'||r.pay==='이체'||r.pay==='현금').reduce((s,r)=>s+r.amt,0);
-  const dateStr=recs[0]?.date||date||'';
-  const dayRefunds=(window.refundRecords||[]).filter(r=>(r.date||'').slice(0,10)===dateStr.slice(0,10));
+  // 결제 금액 합계: 실제 결제(카드·이체·현금) + 물, 환불 제외
+  const total=recs.filter(r=>(r.payMethod==='카드'||r.payMethod==='이체'||r.payMethod==='현금')&&!r.refunded).reduce((s,r)=>s+r.amt,0);
+  const dayRefunds=(window.visits||[]).filter(r=>r.refundDate===date);
   const dayRefundAmt=dayRefunds.reduce((s,r)=>s+(r.refundAmt||0),0);
   const netTotal=total-dayRefundAmt;
-  const card=recs.filter(r=>r.pay==='카드').reduce((s,r)=>s+r.amt,0);
-  const tf=recs.filter(r=>r.pay==='이체').reduce((s,r)=>s+r.amt,0);
-  const cash=recs.filter(r=>r.pay==='현금').reduce((s,r)=>s+r.amt,0);
+  const card=recs.filter(r=>r.payMethod==='카드'&&!r.refunded).reduce((s,r)=>s+r.amt,0);
+  const tf=recs.filter(r=>r.payMethod==='이체'&&!r.refunded).reduce((s,r)=>s+r.amt,0);
+  const cash=recs.filter(r=>r.payMethod==='현금'&&!r.refunded).reduce((s,r)=>s+r.amt,0);
 
-  // 티켓 차감 건수 (payRecords 중 다회권 차감 or members history)
-  const ticketRecs=payRecs.filter(r=>r.ticket==='다회권 차감'||r.pay==='다회권');
-  const deductCnt=(window.members||[]).reduce((s,m)=>s+((m.history||[]).filter(h=>h.date===date).length),0);
+  const deductCnt=recs.filter(r=>r.visitType==='deduct').length;
 
-  // 결제 수강생 수 (이름 기준 중복 제거, 물/다회권 제외)
-  const paidRecs=payRecs.filter(r=>r.pay!=='다회권'&&r.amt>0);
+  // 결제 수강생 수 (이름 기준 중복 제거, 물 제외, 환불 제외)
+  const paidRecs=payRecs.filter(r=>r.amt>0&&!r.refunded);
   const uniqueStudents=new Set(paidRecs.map(r=>r.name)).size;
 
-  // 선생님별 집계 - 결제/티켓 분리
+  // 선생님별 집계 — visits 하나만 보면 됨, 여러 소스를 합칠 필요 없음
   const teacherMap={};
   function ensureTeacher(t){
     if(!teacherMap[t]) teacherMap[t]={
-      cnt:0, amt:0, cats:new Set(),
-      payStudents:[], // [{name, pay, amt}]
-      ticketStudents:[] // [{name}]
+      cats:new Set(),
+      payStudents:[], // [{name,pay,amt,isPro,refunded}]
+      ticketStudents:[], // [{name}]
+      pay:0
     };
   }
-  // 일반 결제 (물·다회권 제외)
-  payRecs.filter(r=>r.teacher&&r.pay!=='다회권').forEach(r=>{
+  payRecs.filter(r=>r.teacher).forEach(r=>{
     ensureTeacher(r.teacher);
-    teacherMap[r.teacher].cnt++;
-    teacherMap[r.teacher].amt+=r.amt;
     if(r.cat) teacherMap[r.teacher].cats.add(r.cat);
-    teacherMap[r.teacher].payStudents.push({name:r.name,pay:r.pay,amt:r.amt,isPro:r.ticket==='전문반',refunded:r.refunded===true});
-  });
-  // 티켓 차감 수강생 (members history 기준)
-  (Array.isArray(window.members)?window.members:[]).forEach(m=>{
-    (m.history||[]).filter(h=>h.date===date&&h.teacher).forEach(h=>{
-      ensureTeacher(h.teacher);
-      teacherMap[h.teacher].cnt++;
-      if(h.cat) teacherMap[h.teacher].cats.add(h.cat);
-      teacherMap[h.teacher].ticketStudents.push({name:m.name});
-    });
+    if(r.visitType==='deduct'){
+      teacherMap[r.teacher].ticketStudents.push({name:r.name});
+    } else {
+      teacherMap[r.teacher].payStudents.push({name:r.name,pay:r.payMethod,amt:r.amt,isPro:r.visitType==='pro',refunded:r.refunded===true});
+    }
+    if(!r.refunded) teacherMap[r.teacher].pay+=window.visitPayCredit(r);
   });
   // 시간표 기준 강사별 수업 시작 시간 (해당 요일)
   const dow=date?new Date(date+'T00:00:00').getDay():null;
@@ -3543,17 +3760,19 @@ function renderDailyClosing(recs, date){
       const ta=toMinutes(teacherTimeMap[a[0]]);
       const tb=toMinutes(teacherTimeMap[b[0]]);
       if(ta!==tb) return ta-tb;
-      return b[1].cnt-a[1].cnt; // 시간이 같거나 시간표에 없으면 인원수순 보조 정렬
+      const totalA=a[1].payStudents.length+a[1].ticketStudents.length;
+      const totalB=b[1].payStudents.length+b[1].ticketStudents.length;
+      return totalB-totalA; // 시간이 같거나 시간표에 없으면 인원수순 보조 정렬
     })
     .map(([t,v],idx)=>{
       const catLabel=[...v.cats].map(c=>CAT_LABEL[c]||c).join(', ');
 
-      // 결제 수단별 그룹
+      const uniqueHeadcount=new Set([...v.payStudents.map(s=>s.name),...v.ticketStudents.map(s=>s.name)]).size;
       const cardStudents=v.payStudents.filter(s=>s.pay==='카드'&&!s.isPro&&!s.refunded);
       const transferStudents=v.payStudents.filter(s=>s.pay==='이체'&&!s.isPro&&!s.refunded);
       const cashStudents=v.payStudents.filter(s=>s.pay==='현금'&&!s.isPro&&!s.refunded);
       const proStudents=v.payStudents.filter(s=>s.isPro&&!s.refunded);
-      const guestStudents=v.payStudents.filter(s=>(s.pay==='게스트'||s.ticket==='게스트')&&!s.refunded);
+      const guestStudents=v.payStudents.filter(s=>(!s.pay||s.pay==='')&&!s.isPro&&!s.refunded);
       const ticketStudents=v.ticketStudents;
 
       // 요약 태그 (헤더에 표시)
@@ -3597,7 +3816,8 @@ function renderDailyClosing(recs, date){
           </span>
           <span style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end">
             ${summaryTags.join('')}
-            <span class="closing-val" style="margin-left:2px">총 ${v.cnt}명</span>
+            <span class="closing-val" style="margin-left:2px;color:#c07a1f">페이 ${fmtW(v.pay)}</span>
+            <span class="closing-val" style="margin-left:2px">총 ${uniqueHeadcount}명</span>
             <span class="closing-teacher-arrow">▼</span>
           </span>
         </div>
@@ -3798,11 +4018,12 @@ function togglePro(){
 }
 
 function exportCSV(){
-  if(!payRecords.length){alert('내보낼 기록이 없습니다');return;}
+  const recs=(window.visits||[]).filter(r=>!r.refunded);
+  if(!recs.length){alert('내보낼 기록이 없습니다');return;}
   const bom='\uFEFF';
   const hdr='날짜,수강생 이름,Class,수업 분류,Ticket,결제 금액(원),결제 방법,카드,이체,현금,비고\n';
-  const rows=payRecords.map(r=>[r.date,r.name,r.teacher,r.cat,r.ticket,r.amt,r.pay,
-    r.pay==='카드'?'V':'',r.pay==='이체'?'V':'',r.pay==='현금'?'V':'',r.note]
+  const rows=recs.map(r=>[r.date,r.name,r.teacher,r.cat,r.ticketType,r.amt,r.payMethod,
+    r.payMethod==='카드'?'V':'',r.payMethod==='이체'?'V':'',r.payMethod==='현금'?'V':'',r.note]
     .map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob([bom+hdr+rows],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -4217,8 +4438,19 @@ waitDb(db=>{
     document.getElementById('pro-inp-phone').value='010-';
     document.getElementById('pro-inp-month').value=thisMonth();
     document.getElementById('pro-inp-memo').value='';
+    window._proPayMethod='카드';
+    document.querySelectorAll('#pro-pay-method-btns .pass-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+    document.getElementById('pro-inp-amt').value=700000;
+    document.getElementById('pro-pay-field').style.display='';
+    document.getElementById('pro-amt-field').style.display='';
     document.getElementById('pro-modal').classList.add('show');
     setTimeout(()=>document.getElementById('pro-inp-name').focus(),50);
+  };
+
+  window.selectProPayMethod=function(btn,method){
+    window._proPayMethod=method;
+    document.querySelectorAll('#pro-pay-method-btns .pass-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
   };
 
   window.openProEdit=function(id){
@@ -4229,6 +4461,9 @@ waitDb(db=>{
     document.getElementById('pro-inp-phone').value=m.phone||'';
     document.getElementById('pro-inp-month').value=m.month||thisMonth();
     document.getElementById('pro-inp-memo').value=m.memo||'';
+    // 수정은 정보 교정용 — 결제가 발생하지 않으므로 결제 필드 숨김
+    document.getElementById('pro-pay-field').style.display='none';
+    document.getElementById('pro-amt-field').style.display='none';
     document.getElementById('pro-modal').classList.add('show');
   };
 
@@ -4249,7 +4484,13 @@ waitDb(db=>{
       // 중복 확인
       const dup=proMembers.find(m=>m.name===name&&m.month===month);
       if(dup&&!confirm(`${name}님은 이미 ${monthLabel(month)}에 등록되어 있습니다. 그래도 추가할까요?`))return;
-      await addDoc(proColRef,{name,phone,month,memo,attendance:[],createdAt:serverTimestamp()});
+      const amt=parseInt(document.getElementById('pro-inp-amt').value)||0;
+      const payMethod=window._proPayMethod||'카드';
+      if(!amt||amt<=0){window.toast&&window.toast('결제금액을 입력해 주세요.');return;}
+      try{
+        const ref=await addDoc(proColRef,{name,phone,month,memo,attendance:[],createdAt:serverTimestamp()});
+        await window.recordVisit({name,date:new Date().toISOString().split('T')[0],teacher:'',cat:'전문반',visitType:'pro',payMethod,amt,ticketType:'전문반 '+monthLabel(month),linkedProId:ref.id,note:'전문반 관리에서 신규 등록'});
+      }catch(e){ window.toast&&window.toast('등록 중 오류: '+e.message); return; }
       window.toast&&window.toast(`${name}님 ${monthLabel(month)} 전문반 등록 완료! 🎉`);
     }
     window.closeProModal();
@@ -4344,33 +4585,30 @@ window.searchStudent = function(query) {
   const el = document.getElementById('student-search-results');
   if(!el) return;
   if(!q){ el.innerHTML='<div style="text-align:center;padding:40px 0;color:#bbb;font-size:13px">이름을 입력하세요</div>'; return; }
-  const recs = (window.payRecords||[]).filter(r=>r.name&&r.name.includes(q)).sort((a,b)=>(b.date+(b.time||'')).localeCompare(a.date+(a.time||'')));
-  const ticketRecs = [];
-  (window.members||[]).filter(m=>m.name&&m.name.includes(q)).forEach(m=>{
-    (m.history||[]).forEach(h=>{ ticketRecs.push({date:h.date,time:h.time||'',name:m.name,teacher:h.teacher||'',cat:h.cat||'',ticket:'티켓차감',amt:0,pay:'ticket',note:'잔여 '+(h.remaining??'')}); });
-  });
-  const proRecs = [];
-  (window.proMembers||[]).filter(m=>m.name&&m.name.includes(q)).forEach(m=>{
-    (m.attendance||[]).forEach(a=>{ proRecs.push({date:a.date||'',time:a.time||'',name:m.name,teacher:a.teacher||'',cat:a.cat||'',ticket:'전문반',amt:0,pay:'pro',note:m.month+' 전문반'}); });
-  });
-  const all=[...recs,...ticketRecs,...proRecs].sort((a,b)=>(b.date+(b.time||'')).localeCompare(a.date+(a.time||'')));
+  const all = (window.visits||[]).filter(r=>r.name&&r.name.includes(q))
+    .sort((a,b)=>(b.date+(b.time||'')).localeCompare(a.date+(a.time||'')));
   if(!all.length){ el.innerHTML=`<div style="text-align:center;padding:40px 0;color:#bbb;font-size:13px">"${q}" 검색 결과 없음</div>`; return; }
-  const names=[...new Set(all.map(r=>r.name))];
-  el.innerHTML=names.map(name=>{
-    const rows=all.filter(r=>r.name===name);
-    const totalAmt=rows.filter(r=>r.amt>0).reduce((s,r)=>s+r.amt,0);
+  // 동명이인 구분: linkedMemberId가 다르면 별도 인물로 묶음
+  const groupKey=r=>r.linkedMemberId?`${r.name}__${r.linkedMemberId}`:(r.linkedProId?`${r.name}__${r.linkedProId}`:r.name);
+  const groups=[...new Set(all.map(groupKey))];
+  el.innerHTML=groups.map(key=>{
+    const rows=all.filter(r=>groupKey(r)===key);
+    const name=rows[0].name;
+    const totalAmt=rows.filter(r=>r.amt>0&&!r.refunded).reduce((s,r)=>s+r.amt,0);
     const rowsHtml=rows.map(r=>{
       let badge='';
-      if(r.pay==='ticket') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#e1f5ee;color:#0f6e56;font-weight:600">티켓</span>';
-      else if(r.pay==='pro') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#f5f0ff;color:#7b4fb5;font-weight:600">전문반</span>';
-      else if(r.pay==='카드') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#faeeda;color:#854f0b;font-weight:600">카드</span>';
-      else if(r.pay==='이체') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#e8f0fe;color:#1a56db;font-weight:600">이체</span>';
-      else if(r.pay==='현금') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#fef3c7;color:#92400e;font-weight:600">현금</span>';
+      if(r.visitType==='deduct') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#e1f5ee;color:#0f6e56;font-weight:600">티켓</span>';
+      else if(r.visitType==='pro') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#f5f0ff;color:#7b4fb5;font-weight:600">전문반</span>';
+      else if(r.visitType==='guest') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#e8f5ee;color:#2e7d32;font-weight:600">게스트</span>';
+      else if(r.payMethod==='카드') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#faeeda;color:#854f0b;font-weight:600">카드</span>';
+      else if(r.payMethod==='이체') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#e8f0fe;color:#1a56db;font-weight:600">이체</span>';
+      else if(r.payMethod==='현금') badge='<span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#fef3c7;color:#92400e;font-weight:600">현금</span>';
+      const refundTag=r.refunded?'<span style="font-size:9px;padding:1px 5px;border-radius:5px;background:#ffeaea;color:#e24b4a;font-weight:600;margin-left:4px">환불</span>':'';
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f5f5f3">
         <div style="font-size:11px;color:#aaa;min-width:88px">${r.date} ${r.time}</div>
         <div style="flex:1"><div style="font-size:12px;font-weight:500">${r.teacher||'—'} <span style="color:#aaa">${r.cat||''}</span></div><div style="font-size:11px;color:#aaa">${r.note||''}</div></div>
-        ${badge}
-        <div style="font-size:13px;font-weight:600;min-width:56px;text-align:right;color:${r.amt>0?'#1a1a1a':'#ccc'}">${r.amt>0?r.amt.toLocaleString()+'원':'—'}</div>
+        ${badge}${refundTag}
+        <div style="font-size:13px;font-weight:600;min-width:56px;text-align:right;color:${r.amt>0&&!r.refunded?'#1a1a1a':'#ccc'}">${r.amt>0?(r.refunded?'취소':r.amt.toLocaleString()+'원'):'—'}</div>
       </div>`;
     }).join('');
     return `<div style="margin-bottom:20px">
@@ -4386,7 +4624,7 @@ let refundTargetId = null;
 let refundMethod = '카드취소';
 
 window.openRefundModal = function(id) {
-  const r = (window.payRecords||[]).find(x=>String(x.firebaseId||x.id)===String(id));
+  const r = (window.visits||[]).find(x=>String(x.id)===String(id));
   if(!r){ alert('결제 내역을 찾을 수 없습니다.'); return; }
   if(r.refunded){ alert('이미 환불 처리된 내역입니다.'); return; }
   refundTargetId = id;
@@ -4395,7 +4633,7 @@ window.openRefundModal = function(id) {
   const rfInfo = document.getElementById('rf-origin-info');
   const rfAmt = document.getElementById('rf-amt');
   if(rfName) rfName.textContent = r.name;
-  if(rfInfo) rfInfo.textContent = `${r.date} · ${r.ticket||r.cat||''} · ${(r.amt||0).toLocaleString()}원 · ${r.pay||''}`;
+  if(rfInfo) rfInfo.textContent = `${r.date} · ${r.ticketType||r.cat||''} · ${(r.amt||0).toLocaleString()}원 · ${r.payMethod||''}`;
   if(rfAmt) rfAmt.value = r.amt||0;
   document.querySelectorAll('#rf-method-btns button').forEach(b=>{
     const active=b.dataset.method==='카드취소';
@@ -4418,7 +4656,7 @@ window.closeRefundModal = function() {
 };
 
 window.setRefundFull = function() {
-  const r = (window.payRecords||[]).find(x=>String(x.firebaseId||x.id)===String(refundTargetId));
+  const r = (window.visits||[]).find(x=>String(x.id)===String(refundTargetId));
   if(r){ const el=document.getElementById('rf-amt'); if(el) el.value=r.amt||0; }
 };
 
@@ -4443,7 +4681,7 @@ window.selectRefundReason = function(reason) {
 };
 
 window.confirmRefund = async function() {
-  const r = (window.payRecords||[]).find(x=>String(x.firebaseId||x.id)===String(refundTargetId));
+  const r = (window.visits||[]).find(x=>String(x.id)===String(refundTargetId));
   if(!r) return;
   const amtEl=document.getElementById('rf-amt');
   const amt=parseInt(amtEl?.value||0);
@@ -4451,39 +4689,27 @@ window.confirmRefund = async function() {
   if(amt>(r.amt||0)){ alert(`환불 금액이 원결제 금액(${(r.amt||0).toLocaleString()}원)을 초과합니다.`); return; }
   const reason=document.getElementById('rf-reason-text')?.value.trim()||'사유 없음';
   if(!confirm(`${r.name}님 ${amt.toLocaleString()}원을 환불 처리할까요?\n방법: ${refundMethod} / 사유: ${reason}`)) return;
-  const now=new Date();
-  const today=now.toISOString().split('T')[0];
-  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  const refundRec={
-    originalId:String(r.firebaseId||r.id), date:today, time:timeStr, name:r.name,
-    originalDate:r.date, originalAmt:r.amt||0, originalPay:r.pay||'',
-    originalTicket:r.ticket||r.cat||'', refundAmt:amt, refundMethod:refundMethod, reason:reason
-  };
+  const today=new Date().toISOString().split('T')[0];
   try {
-    await dbCompat.collection('refunds').add({...refundRec, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-    const docId = r.firebaseId||String(r.id);
-    await dbCompat.collection('payRecords').doc(docId).update({refunded:true, refundAmt:amt, refundDate:today});
-    const idx=(window.payRecords||[]).findIndex(x=>String(x.firebaseId||x.id)===String(refundTargetId));
-    if(idx!==-1){ window.payRecords[idx].refunded=true; window.payRecords[idx].refundAmt=amt; }
+    await cancelVisit(String(r.id),{amt,method:refundMethod,reason,date:today});
+    const idx=(window.visits||[]).findIndex(x=>String(x.id)===String(refundTargetId));
+    if(idx!==-1){ Object.assign(window.visits[idx],{refunded:true,refundAmt:amt,refundMethod,refundReason:reason,refundDate:today}); }
     window.closeRefundModal();
-    if(typeof updatePayStats==='function') updatePayStats();
+    if(curPayTab==='daily') renderDaily();
+    if(curPayTab==='monthly') renderMonthly();
     if(typeof window.toast==='function') window.toast(`${r.name}님 ${amt.toLocaleString()}원 환불 완료 💸`);
   } catch(e){ console.error('환불 오류:',e); alert('환불 저장 중 오류: '+e.message); }
 };
 
-// ── 환불 내역 탭 ──
-let refundRecords = [];
-window.renderRefundsTab = async function() {
-  try {
-    const snap = await dbCompat.collection('refunds').get();
-    refundRecords = snap.docs.map(d=>({id:d.id,...d.data()}))
-      .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  } catch(e){ console.error('환불 로드 오류:',e); refundRecords=[]; }
+// ── 환불 내역 탭 — 별도 컬렉션 없이 visits에서 refunded===true만 필터 ──
+window.renderRefundsTab = function() {
+  const refundRecords = (window.visits||[]).filter(r=>r.refunded===true)
+    .sort((a,b)=>(b.refundDate||'').localeCompare(a.refundDate||''));
 
   const totalCnt=refundRecords.length;
   const totalAmt=refundRecords.reduce((s,r)=>s+(r.refundAmt||0),0);
   const thisMonth=new Date().toISOString().slice(0,7);
-  const monthAmt=refundRecords.filter(r=>(r.date||'').startsWith(thisMonth)).reduce((s,r)=>s+(r.refundAmt||0),0);
+  const monthAmt=refundRecords.filter(r=>(r.refundDate||'').startsWith(thisMonth)).reduce((s,r)=>s+(r.refundAmt||0),0);
   const setCnt=document.getElementById('rf-total-cnt'); if(setCnt) setCnt.textContent=totalCnt+'건';
   const setAmt=document.getElementById('rf-total-amt'); if(setAmt) setAmt.textContent=totalAmt.toLocaleString()+'원';
   const setMo=document.getElementById('rf-month-amt'); if(setMo) setMo.textContent=monthAmt.toLocaleString()+'원';
@@ -4491,7 +4717,7 @@ window.renderRefundsTab = async function() {
   const wrap=document.getElementById('rf-list-wrap');
   if(!wrap) return;
   if(!refundRecords.length){
-    wrap.innerHTML='<div style="text-align:center;padding:40px 0;color:#bbb;font-size:13px">환불 내역이 없습니다</div>';
+    wrap.innerHTML='<div style="text-align:center;padding:40px 0;color:#bbb;font-size:13px">환불 내역이 없습니다 (최근 2개월 범위)</div>';
     return;
   }
 
@@ -4506,45 +4732,67 @@ window.renderRefundsTab = async function() {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <span style="font-size:15px;font-weight:700">${r.name||''}</span>
           <span style="font-size:10px;padding:2px 7px;border-radius:5px;background:${METHOD_BG[r.refundMethod]||'#f0f0ee'};color:${METHOD_COLOR[r.refundMethod]||'#555'};font-weight:600">${r.refundMethod||''}</span>
-          <span style="font-size:10px;padding:2px 7px;border-radius:5px;background:${REASON_BG[r.reason]||'#f0f0ee'};color:${REASON_COLOR[r.reason]||'#888'};font-weight:600">${r.reason||''}</span>
+          <span style="font-size:10px;padding:2px 7px;border-radius:5px;background:${REASON_BG[r.refundReason]||'#f0f0ee'};color:${REASON_COLOR[r.refundReason]||'#888'};font-weight:600">${r.refundReason||''}</span>
         </div>
-        <div style="font-size:11px;color:#aaa">${r.date||''} · 원결제 ${r.originalDate||''} ${r.originalTicket||''} ${(r.originalAmt||0).toLocaleString()}원</div>
+        <div style="font-size:11px;color:#aaa">${r.refundDate||''} · 원결제 ${r.date||''} ${r.ticketType||r.cat||''} ${(r.amt||0).toLocaleString()}원</div>
       </div>
       <div style="font-size:18px;font-weight:700;color:#e24b4a;white-space:nowrap">-${(r.refundAmt||0).toLocaleString()}원</div>
-      <button onclick="deleteRefundRecord('${r.id}','${r.originalId||''}')" style="padding:4px 10px;border:1px solid #e0e0da;border-radius:6px;background:none;font-size:11px;color:#ccc;cursor:pointer;font-family:inherit;flex-shrink:0" onmouseover="this.style.color='#e24b4a';this.style.borderColor='#e24b4a'" onmouseout="this.style.color='#ccc';this.style.borderColor='#e0e0da'">삭제</button>
+      <button onclick="deleteRefundRecord('${r.id}')" style="padding:4px 10px;border:1px solid #e0e0da;border-radius:6px;background:none;font-size:11px;color:#ccc;cursor:pointer;font-family:inherit;flex-shrink:0" onmouseover="this.style.color='#e24b4a';this.style.borderColor='#e24b4a'" onmouseout="this.style.color='#ccc';this.style.borderColor='#e0e0da'">삭제</button>
     </div>`).join('');
 };
 
-window.deleteRefundRecord = async function(refundId, originalId) {
-  if(!confirm('이 환불 기록을 삭제할까요?\n원결제의 환불 표시도 함께 제거됩니다.')) return;
+window.deleteRefundRecord = async function(visitId) {
+  if(!confirm('이 환불 처리를 취소할까요?\n원래 결제 내역으로 되돌아갑니다.')) return;
   try {
-    const db = firebase.firestore();
-    // refunds 컬렉션에서 삭제
-    await dbCompat.collection('refunds').doc(refundId).delete();
-    // 원결제의 refunded 표시 제거
-    if(originalId) {
-      try {
-        await dbCompat.collection('payRecords').doc(originalId).update({
-          refunded: firebase.firestore.FieldValue.delete(),
-          refundAmt: firebase.firestore.FieldValue.delete(),
-          refundDate: firebase.firestore.FieldValue.delete()
-        });
-      } catch(e) { console.warn('원결제 업데이트 실패(무시):', e); }
-    }
-    if(typeof window.toast==='function') window.toast('환불 기록 삭제 완료');
-    // 목록 새로고침
+    await visitsColRef.doc(String(visitId)).update({
+      refunded: false,
+      refundAmt: firebase.firestore.FieldValue.delete(),
+      refundMethod: firebase.firestore.FieldValue.delete(),
+      refundReason: firebase.firestore.FieldValue.delete(),
+      refundDate: firebase.firestore.FieldValue.delete()
+    });
+    const idx=(window.visits||[]).findIndex(x=>String(x.id)===String(visitId));
+    if(idx!==-1){ window.visits[idx].refunded=false; delete window.visits[idx].refundAmt; }
+    if(typeof window.toast==='function') window.toast('환불 취소 완료 — 원결제로 복원됨');
     if(typeof window.renderRefundsTab==='function') window.renderRefundsTab();
+    if(curPayTab==='daily') renderDaily();
+    if(curPayTab==='monthly') renderMonthly();
   } catch(e) {
-    console.error('환불 삭제 오류:', e);
-    alert('삭제 중 오류: ' + e.message);
+    console.error('환불 취소 오류:', e);
+    alert('취소 중 오류: ' + e.message);
   }
 };
 
+window.exportPayrollCSV = async function(ym){
+  const lock=await window.loadPayrollLock(ym);
+  let rows;
+  if(lock&&lock.rates){
+    rows=Object.entries(lock.rates);
+  } else {
+    const recs=(window.visits||[]).filter(r=>r.date.startsWith(ym)&&!r.refunded&&r.teacher);
+    const map={};
+    recs.forEach(r=>{ map[r.teacher]=(map[r.teacher]||0)+window.visitPayCredit(r); });
+    rows=Object.entries(map);
+  }
+  if(!rows.length){ alert('해당 월 강사페이 내역이 없습니다.'); return; }
+  rows.sort((a,b)=>b[1]-a[1]);
+  const bom='\uFEFF';
+  const hdr='강사,페이(원),확정여부\n';
+  const status=lock&&lock.rates?'확정됨':'미확정(실시간)';
+  const body=rows.map(([t,amt])=>[t,amt,status].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const totalRow=['합계',rows.reduce((s,[,a])=>s+a,0),status].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  const blob=new Blob([bom+hdr+body+'\n'+totalRow],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='강사페이_'+ym+'.csv'; a.click();
+  if(window.toast) window.toast('CSV 다운로드 완료!');
+};
+
 window.exportRefundCSV = function() {
+  const refundRecords = (window.visits||[]).filter(r=>r.refunded===true);
   if(!refundRecords.length){ alert('환불 내역이 없습니다.'); return; }
   const bom='\uFEFF';
   const hdr='환불일,이름,원결제일,원결제상품,원결제금액(원),환불금액(원),환불방법,사유\n';
-  const rows=refundRecords.map(r=>[r.date||'',r.name||'',r.originalDate||'',r.originalTicket||'',r.originalAmt||0,r.refundAmt||0,r.refundMethod||'',r.reason||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const rows=refundRecords.map(r=>[r.refundDate||'',r.name||'',r.date||'',r.ticketType||r.cat||'',r.amt||0,r.refundAmt||0,r.refundMethod||'',r.refundReason||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob([bom+hdr+rows],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='환불내역_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
@@ -4695,9 +4943,14 @@ window.registerAllTransfer = async function() {
   if(!confirm(`${toRegister.length}건을 이체 결제로 등록할까요?`)) return;
   const CAT_TICKET={'1회권':'1회','4회권':'4회','8회권':'8회','전문반':'전문반','예약금':'예약금','뮤스테이지':'뮤스테이지','뮤스테이지 예약금':'뮤스테이지','뮤스테이지 차액':'뮤스테이지','기타':'기타'};
   for(const item of toRegister){
-    const rec={id:Date.now()+Math.random(),date:item.date,time:item.time,name:item.name,teacher:'',cat:item.cat,ticket:CAT_TICKET[item.cat]||item.cat,amt:item.amt,pay:'이체',note:'이체내역 자동등록 · '+item.bank};
-    if(typeof window.savePayToFirebase==='function') await window.savePayToFirebase(rec);
-    if(typeof window.savePay==='function') window.savePay();
+    try{
+      await recordVisit({
+        name:item.name,date:item.date,time:item.time,teacher:'',cat:item.cat,
+        visitType:item.cat==='전문반'?'pro':'single_ticket',
+        payMethod:'이체',amt:item.amt,ticketType:CAT_TICKET[item.cat]||item.cat,
+        note:'이체내역 자동등록 · '+item.bank,
+      });
+    }catch(e){ console.error('이체 등록 오류:',e); }
   }
   transferItems=transferItems.filter(i=>!i.classified);
   window.renderTransferPage();
